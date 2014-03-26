@@ -6,7 +6,7 @@ class Task
     public function registerAutoloaders()
     {
         $loader = new \Phalcon\Loader();
-        
+
         $loader->registerNamespaces(array(
             'Instcar\Server\Tasks'   => __DIR__.'/tasks/',
             'Instcar\Server\Models'  => __DIR__.'/models/',
@@ -52,7 +52,7 @@ class Task
                 $dispatcher = new \Phalcon\CLI\Dispatcher();
                 $dispatcher->setDefaultNamespace("Instcar\Server\Tasks\\");
                 return $dispatcher;
-            });
+        });
     }
 
 }
