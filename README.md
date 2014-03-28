@@ -110,7 +110,7 @@ make && make install
 
 3.业务框架及其应用
 ---------------
-
-      git clone git@github.com:BullSoft/falcon.git
-      cd falcon
-      git clone https://github.com/instcar/server
+      mkdir instcar
+      git clone git@github.com:instcar/skeleton.git
+      git clone git@github.com:instcar/public.git
+      git clone git@github.com:instcar/server.git
