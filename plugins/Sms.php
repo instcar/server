@@ -16,7 +16,7 @@ class Sms
         return $client;    
   }
 
-  public function send($phone)
+  public function send($phone, $authCode)
   {
     $request = new \Buzz\Message\Form\FormRequest();
     $request->setHost('http://121.199.16.178');
@@ -25,7 +25,7 @@ class Sms
 	'account' => 'cf_instcar',
 	'password'=> 'se1vbmhk',
 	'mobile'  => $phone,
-	'content' => '您的《易行》注册验证码为：123 [序号为 123]。',
+	'content' => "您的《易行》注册验证码为：{$authCode} [序号为 {$authCode}]。",
     );
     $request->setFields($params);
     $response = new \Buzz\Message\Response();
