@@ -118,3 +118,17 @@ make && make install
       git clone git@github.com:instcar/skeleton.git
       git clone git@github.com:instcar/public.git
       git clone git@github.com:instcar/server.git
+
+apache 配置：
+
+      Listen 80
+      NameVirtualHost *:80
+      <VirtualHost *:80>
+        ServerAdmin guweigang@outlook.com
+        DocumentRoot "/Library/WebServer/Documents/instcar/public"
+        ServerName instcar.com
+        ServerAlias www.instcar.com
+        ErrorLog "/private/var/log/apache2/localhost.instcar.com-error_log"
+        CustomLog "/private/var/log/apache2/localhost.instcar.com-access_log" common
+      </VirtualHost>
+
