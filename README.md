@@ -16,6 +16,10 @@ InstCar server side
 
 如果以上都没有cover到你的系统，那么请下载git源码包编译安装，忘了我吧，祝你好运！
 
+另外，要想无阻的使用github，要在github上添加ssh key，生成方法：`ssh-keygen -t rsa -C "Your email address"`
+
+然后到github的个人中心添加key, 地址是：https://github.com/settings/ssh
+
 ### 基础库依赖
 
 sudo apt-get install libssl-dev
@@ -36,7 +40,7 @@ sudo apt-get install libncurses5-dev
 
 sudo apt-get install libmcrypt-dev
 
-### [PHP 5.3.28](http://cn2.php.net/downloads.php)
+### [PHP 5.4.26](http://cn2.php.net/downloads.php)
 
 这次我们的后端业务完全采用PHP开发，这里不争论哪种语言好，只说哪种语言我们最善长。
 

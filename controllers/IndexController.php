@@ -8,4 +8,12 @@ class IndexController extends ControllerBase
       echo "Hello, Instcar !!!";
       exit;
     }
+
+    public function smsAction()
+    {
+      $sms = new \Instcar\Server\Plugins\Sms();
+      $sms->send(18612900050);
+      echo "Success";
+      exit;
+    }
 }

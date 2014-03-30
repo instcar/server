@@ -1,5 +1,5 @@
 <?php
-namesapce Instcar\Server\Plugins;
+namespace Instcar\Server\Plugins;
 
 class Sms
 {
@@ -20,17 +20,18 @@ class Sms
   {
     $request = new \Buzz\Message\Form\FormRequest();
     $request->setHost('http://121.199.16.178');
-    $request->setResoure('/webservice/sms.php?method=SendSms');
+    $request->setResource('/webservice/sms.php?method=Submit');
     $params = array(
-		    'account' => 'cf_instcar',
-		    'password' => 'se1vbmhk',
-		    'mobile' => '18612648090',
-		    'content' => 'hello, world',
-		    );
+	'account' => 'cf_instcar',
+	'password'=> 'se1vbmhk',
+	'mobile'  => $phone,
+	'content' => '您的《易行》注册验证码为：123 [序号123]。',
+    );
     $request->setFields($params);
     $response = new \Buzz\Message\Response();
     $client = $this->getCurlClient(true);
     $client->send($request, $response);
+    // var_dump($response);
     if($response->isOk()) {
       return true;
     } else {
