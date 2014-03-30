@@ -25,15 +25,15 @@ class Sms
 	'account' => 'cf_instcar',
 	'password'=> 'se1vbmhk',
 	'mobile'  => $phone,
-	'content' => '您的《易行》注册验证码为：123 [序号123]。',
+	'content' => '您的《易行》注册验证码为：123 [序号为 123]。',
     );
     $request->setFields($params);
     $response = new \Buzz\Message\Response();
     $client = $this->getCurlClient(true);
     $client->send($request, $response);
-    // var_dump($response);
     if($response->isOk()) {
-      return true;
+      $obj = simplexml_load_string($response->getContent());
+      return $obj;
     } else {
       return false;
     }
