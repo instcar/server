@@ -1,13 +1,16 @@
 <?php
+
 namespace Instcar\Server\Models;
 
-class User extends \Phalcon\Mvc\Model
+class Point extends \Phalcon\Mvc\Model
 {
     public $id;
-    public $phone;
     public $name;
-    public $headpic;
-    public $status;
+    public $lat; //纬度
+    public $lng; //经度 
+    public $geohash;
+    public $district;
+    public $city;
     public $addtime = '0000-00-00 00:00:00';
     public $modtime;
   
@@ -18,6 +21,6 @@ class User extends \Phalcon\Mvc\Model
 
     public function getSource()
     {
-        return "user";
+        return "point";
     } 
 }

@@ -131,4 +131,44 @@ apache 配置：
         ErrorLog "/private/var/log/apache2/localhost.instcar.com-error_log"
         CustomLog "/private/var/log/apache2/localhost.instcar.com-access_log" common
       </VirtualHost>
+
+nginx 配置：
+
+
+
+      server {
+
+          listen 8080;
+
+          server_name instcar.com;
+
+          access_log /var/log/nginx/access.instcar main;
+
+          index index.php index.html index.htm;
+
+          set $root_path '/var/htdocs/instcar/public';
+
+          root $root_path;
+
+          try_files $uri $uri/ @rewrite
+
+          location @rewrite {
+              rewrite ^/(.*)$ /index.php?_url=/$1;
+          }
+
+          location ~ \.php {
+              fastcgi_pass 127.0.0.1:9003;
+              include fastcgi_params;
+              fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+          }
+
+          location ~* ^/(css|img|js|flv|swf|download)/(.+)$ {
+              root $root_path;
+          }
+
+          location ~ /\.ht {
+              deny all;
+          }
+
+      }
 

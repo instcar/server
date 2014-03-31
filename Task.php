@@ -14,11 +14,11 @@ class Task
         ))->register();
     }
 
-   /**
-    *
-    * Register the services here to make them module-specific
-    *
-    */
+    /**
+     *
+     * Register the services here to make them module-specific
+     *
+     */
     public function registerServices($di)
     {
         // get bootstrap obj
@@ -29,9 +29,10 @@ class Task
 
         // module config
         $mConfPath = __DIR__.'/confs/'.PHALCON_ENV.'.'.PHALCON_CONF_TYPE;
-	if(!is_file($mConfPath)) {
-	  throw new \Phalcon\Config\Exception("Module config file not exist, file position: {$mConfPath}");
-	}
+        if(!is_file($mConfPath)) {
+            throw new \Phalcon\Config\Exception("Module config file not exist, file position: {$mConfPath}");
+        }
+        
         if(PHALCON_CONF_TYPE == 'ini') {
             $mConfig = new $confClass($mConfPath);
         } else if(PHALCON_CONF_TYPE == 'php') {
@@ -49,9 +50,9 @@ class Task
 
         // Registering a dispatcher
         $di->set('dispatcher', function () {
-                $dispatcher = new \Phalcon\CLI\Dispatcher();
-                $dispatcher->setDefaultNamespace("Instcar\Server\Tasks\\");
-                return $dispatcher;
+            $dispatcher = new \Phalcon\CLI\Dispatcher();
+            $dispatcher->setDefaultNamespace("Instcar\Server\Tasks\\");
+            return $dispatcher;
         });
     }
 
