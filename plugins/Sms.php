@@ -25,7 +25,7 @@ class Sms
 	'account' => 'cf_instcar',
 	'password'=> 'se1vbmhk',
 	'mobile'  => $phone,
-	'content' => "您的《易行》注册验证码为：{$authCode} [序号为 {$authCode}]。",
+	'content' => "您的《易行》注册验证码为：{$authCode}[序号为{$authCode}]。",
     );
     $request->setFields($params);
     $response = new \Buzz\Message\Response();

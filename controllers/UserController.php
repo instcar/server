@@ -3,7 +3,8 @@ namespace Instcar\Server\Controllers;
 use Instcar\Server\Models\User as UserModel;
 use Phalcon\Validation\Validator\Regex as RegexValidator;
 use Phalcon\Validation\Validator\PresenceOf;
-  
+use Phalcon\Validation\Validator\StringLength as StringLength;
+
 class UserController extends ControllerBase
 {
     public function checkUserPhoneAction()
@@ -39,7 +40,25 @@ class UserController extends ControllerBase
     public function checkUsernameAction()
     {
         $username = $this->request->getPost('username');
-        $userModel = UserModel::findFirst('name='.$username);
+
+        $validator = new \Phalcon\Validation();
+        $validator->add('username', new StringLength(array(
+            'max' => 8,
+            'min' => 2,
+            'messageMaximum' => '名称不能超过 6 个字',
+            'messageMinimum' => '名称不能少于 2 个字'
+        )));
+        
+        $messages = $validator->validate($_POST);
+        if (count($messages)) {
+            $errMsgs = array();
+            foreach($messages as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+        
+        $userModel = UserModel::findFirst("name='".$username."'");
         if(empty($userModel)) {
             $this->flashJson(200, array(), '名称可用');
         } else {
@@ -156,6 +175,15 @@ class UserController extends ControllerBase
 
     public function detailAction()
     {
+        $userId = intval($this->request->getPost('uid'));
+        if($userId <= 0) {
+            $this->flashJson(500, array(), '非法请求！');
+        }
+        $userModel = UserModel::findFirst($userId);
+        if(empty($userModel)) {
+            $this->flashJson(500, array(), '非法请求！');
+        }
+        $this->flashJson(200, $userModel->toArray());
 
     }
 
