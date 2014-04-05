@@ -9,8 +9,6 @@ class UserController extends ControllerBase
 {
     public function checkUserPhoneAction()
     {
-        $phone = $this->request->getPost('phone');
-    
         $validator = new \Phalcon\Validation();
         $validator->add('phone', new PresenceOf(array(
             'message' => '手机号必须',
@@ -28,12 +26,14 @@ class UserController extends ControllerBase
             }
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
-    
+
+        $phone = trim($this->request->getPost('phone'));
+
         $userModel = UserModel::findFirst('phone='.$phone);
         if(empty($userModel)) {
             $this->flashJson(200, array(), '手机号可用');
         } else {
-            $this->flashJson(201, array(), '该手机号已存在');
+            $this->flashJson(500, array(), '该手机号已存在');
         }    
     }
   
@@ -42,11 +42,14 @@ class UserController extends ControllerBase
         $username = $this->request->getPost('username');
 
         $validator = new \Phalcon\Validation();
+        $validator->add('username', new PresenceOf(array(
+            'username' => '用户名必须',
+        )));
         $validator->add('username', new StringLength(array(
             'max' => 8,
             'min' => 2,
-            'messageMaximum' => '名称不能超过 6 个字',
-            'messageMinimum' => '名称不能少于 2 个字'
+            'messageMaximum' => '名称长度不能超过 8 ',
+            'messageMinimum' => '名称长度不能小于 2 '
         )));
         
         $messages = $validator->validate($_POST);
@@ -58,11 +61,11 @@ class UserController extends ControllerBase
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
         
-        $userModel = UserModel::findFirst("name='".$username."'");
+        $userModel = UserModel::findFirst("name='{$username}'");
         if(empty($userModel)) {
             $this->flashJson(200, array(), '名称可用');
         } else {
-            $this->flashJson(201, array(), '该名称已存在');
+            $this->flashJson(500, array(), '该名称已存在');
         }
     }
 
@@ -84,27 +87,61 @@ class UserController extends ControllerBase
             }
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
-        $phone = $this->request->getPost("phone");
+        
+        $phone = trim($this->request->getPost("phone"));
+
         $sms = new \Instcar\Server\Plugins\Sms();
         $authCode = mt_rand(100000, 999999);
         $ret = $sms->send($phone, $authCode);
         if($ret->code != 2) {
             $this->flashJson(500, array(), strval($ret->msg));
         }
-        getDI()->get('session')->set('authcode', $authCode);
         $this->flashJson(200, array('smsid' => intval($ret->smsid), 'phone' => $phone));
     }
    
     public function registerAction()
     {
-        $phone = $this->request->getPost('phone');
-        $postAuthCode = $this->request->getPost('authcode');
+        $validator = new \Phalcon\Validation();
+        $validator->add('phone', new PresenceOf(array(
+            'message' => '手机号必须',
+        )));
+        $validator->add('phone', new RegexValidator(array(
+            'pattern' => '/^[1][3578]\d{9}$/',
+            'message' => '手机号码格式不正确'
+        )));
+
+        $validator->add('password', new PresenceOf(array(
+            'message' => '密码必须',
+        )));
+        $validator->add('password', new StringLength(array(
+            'max' => 32,
+            'min' => 6,
+            'messageMaXimum' => '密码长度不能超过 32 ',
+            'messageMinimum' => '密码长度不能小于 6 '
+        )));
+        
+        $messages = $validator->validate($_POST);
+        
+        if (count($messages)) {
+            $errMsgs = array();
+            foreach($messages as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+        
+        $phone = trim($this->request->getPost('phone'));
+        $password = trim($this->request->getPost('password'));
+        
+        $postAuthCode = trim($this->request->getPost('authcode'));
         $sessAuthCode = getDI()->get('session')->get('authcode');
-        if($postAuthCode !== $sessAuthCode) {
+        getDI()->get('logger')->error($sessAuthCode);
+        if($postAuthCode != $sessAuthCode) {
             $this->flashJson(500, array(), "验证码错误");
         }
         $userModel = new UserModel();
         $userModel->phone = $phone;
+        $userModel->password = md5($password);
         $userModel->status = 0;
         $userModel->addtime = $userModel->modtime = date('Y-m-d H:i:s');
         if($userModel->save() === false) {
@@ -119,15 +156,13 @@ class UserController extends ControllerBase
 
     public function loginAction()
     {
-        $phone = $this->request->getPost('phone');
-        $postAuthCode = $this->request->getPost('authcode');
-        $sessAuthCode = getDI()->get('session')->get('authcode');
-        if($postAuthCode !== $sessAuthCode) {
-            $this->flashJson(500, array(), "验证码错误");
-        }
-        $userModel = UserModel::findFirst('phone='.$phone);
+        $phone = trim($this->request->getPost('phone'));
+        $password = trim($this->request->getPost('password'));
+        $encryptPassword = md5($password);
+        
+        $userModel = UserModel::findFirst("phone='{$phone}' AND password='{$encryptPassword}'");
         if(empty($userModel)) {
-            $this->flashJson(500, array(), "用户不存在，请注册");
+            $this->flashJson(500, array(), "用户不存在或密码错误，请重试");
         } else {
             $this->flashJson(200, array(),  "登录成功");
         }

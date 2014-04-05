@@ -6,6 +6,7 @@ class User extends \Phalcon\Mvc\Model
     public $id;
     public $phone;
     public $name;
+    public $password;
     public $email = '@';
     public $headpic;
     public $status;
