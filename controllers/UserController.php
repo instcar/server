@@ -119,6 +119,16 @@ class UserController extends ControllerBase
             'messageMaXimum' => '密码长度不能超过 32 ',
             'messageMinimum' => '密码长度不能小于 6 '
         )));
+
+        $validator->add('authcode', new PresenceOf(array(
+            'message' => '验证码必须',
+        )));
+        $validator->add('authcode', new StringLength(array(
+            'max' => 6,
+            'min' => 6,
+            'messageMaXimum' => '验证码长度必须为 6 ',
+            'messageMinimum' => '验证码长度必须为 6 '
+        )));
         
         $messages = $validator->validate($_POST);
         
@@ -132,18 +142,23 @@ class UserController extends ControllerBase
         
         $phone = trim($this->request->getPost('phone'));
         $password = trim($this->request->getPost('password'));
-        
-        $postAuthCode = trim($this->request->getPost('authcode'));
+        $postAuthCode = trim($this->request->getPost('authcode'));        
+
         $sessAuthCode = getDI()->get('session')->get('authcode');
-        getDI()->get('logger')->error($sessAuthCode);
         if($postAuthCode != $sessAuthCode) {
             $this->flashJson(500, array(), "验证码错误");
         }
+
+        $userModel = UserModel::findFirst("phone='{$phone}'");
+        if(!empty($userModel)) {
+            $this->flashJson(500, array(), "该用户已存在！");
+        }
+        unset($userModel);
+        
         $userModel = new UserModel();
         $userModel->phone = $phone;
         $userModel->password = md5($password);
         $userModel->status = 0;
-        $userModel->addtime = $userModel->modtime = date('Y-m-d H:i:s');
         if($userModel->save() === false) {
             $errMsgs =  array();
             foreach($userModel->getMessages() as $message) {
