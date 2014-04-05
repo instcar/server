@@ -16,6 +16,17 @@ class Car extends \Phalcon\Mvc\Model
         $this->setConnectionService('db');
     }
 
+    public function beforeValidationOnCreate()
+    {
+    	$this->addtime = date("Y-m-d H:i:s");
+    	$this->modtime = date("Y-m-d H:i:s");
+    }
+    
+    public function beforeUpdate()
+    {
+    	$this->modtime = date("Y-m-d H:i:s");
+    }
+    
     public function getSource()
     {
         return "car";
