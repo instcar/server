@@ -4,6 +4,7 @@ use Instcar\Server\Models\User as UserModel;
 use Phalcon\Validation\Validator\Regex as RegexValidator;
 use Phalcon\Validation\Validator\PresenceOf;
 use Phalcon\Validation\Validator\StringLength as StringLength;
+use Phalcon\Validation\Validator\Between as BetweenValidator;
 
 class UserController extends ControllerBase
 {
@@ -183,6 +184,34 @@ class UserController extends ControllerBase
 
     public function loginAction()
     {
+        $validator = new \Phalcon\Validation();
+        $validator->add('phone', new PresenceOf(array(
+            'message' => '手机号必须',
+        )));
+        $validator->add('phone', new RegexValidator(array(
+            'pattern' => '/^[1][3578]\d{9}$/',
+            'message' => '手机号码格式不正确'
+        )));
+
+        $validator->add('password', new PresenceOf(array(
+            'message' => '密码必须',
+        )));
+        $validator->add('password', new StringLength(array(
+            'max' => 12,
+            'min' => 6,
+            'messageMaXimum' => '密码长度不能超过 12 ',
+            'messageMinimum' => '密码长度不能小于 6 '
+        )));
+        
+        $messages = $validator->validate($_POST);
+        if (count($messages)) {
+            $errMsgs = array();
+            foreach($messages as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+        
         $phone = trim($this->request->getPost('phone'));
         $password = trim($this->request->getPost('password'));
         $encryptPassword = md5($password);
@@ -191,6 +220,7 @@ class UserController extends ControllerBase
         if(empty($userModel)) {
             $this->flashJson(500, array(), "用户不存在或密码错误，请重试");
         } else {
+            getDI()->get('session')->set('identity', $userModel->id);
             $this->flashJson(200, array("uid" => $userModel->id),  "登录成功");
         }
     }
@@ -237,14 +267,36 @@ class UserController extends ControllerBase
 
     public function detailAction()
     {
-        $userId = intval($this->request->getPost('uid'));
-        if($userId <= 0) {
-            $this->flashJson(500, array(), '非法请求！');
+        if(!$this->user) {
+            $this->flashJson(401);
         }
+        getDI()->get('logger')->error("session", $_SESSION);
+        $validator = new \Phalcon\Validation();
+        $validator->add('uid', new PresenceOf(array(
+            'message' => '用户ID必须',
+        )));
+        $validator->add('uid', new BetweenValidator(array(
+            'minimum' => 1,
+            'maximum' => 1000000000,
+            'message' => '用户ID必须大于0'
+        )));
+
+        $messages = $validator->validate($_POST);
+        if (count($messages)) {
+            $errMsgs = array();
+            foreach($messages as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+        
+        $userId = intval($this->request->getPost('uid'));
+
         $userModel = UserModel::findFirst($userId);
         if(empty($userModel)) {
-            $this->flashJson(500, array(), '非法请求！');
+            $this->flashJson(500, array(), '用户不存在！');
         }
+        $userModel->password = null;
         $this->flashJson(200, $userModel->toArray());
 
     }
