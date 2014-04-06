@@ -93,6 +93,7 @@ class UserController extends ControllerBase
         $sms = new \Instcar\Server\Plugins\Sms();
         $authCode = mt_rand(100000, 999999);
         getDI()->get('session')->set('authcode', $authCode);
+        getDI()->get('session')->set('phone', $phone);
         
         $ret = $sms->send($phone, $authCode);
         if($ret->code != 2) {
@@ -100,8 +101,7 @@ class UserController extends ControllerBase
         }
         
         getDI()->get('session')->set('smsid', intval($ret->smsid));
-        getDI()->get('session')->set('phone', $phone);
-        
+
         $this->flashJson(200, array('smsid' => intval($ret->smsid), 'phone' => $phone));
     }
    
