@@ -9,6 +9,13 @@ class IndexController extends ControllerBase
         exit;
     }
 
+    public function testAction()
+    {
+        $encryptPassword = $this->crypt->encryptBase64("hello,world111111111", "le pa");
+        echo $encryptPassword;
+        exit;
+    }
+
     public function smsAction()
     {
         $phone = trim($this->request->getPost("phone"));

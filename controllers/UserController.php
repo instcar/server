@@ -92,10 +92,16 @@ class UserController extends ControllerBase
 
         $sms = new \Instcar\Server\Plugins\Sms();
         $authCode = mt_rand(100000, 999999);
+        getDI()->get('session')->set('authcode', $authCode);
+        
         $ret = $sms->send($phone, $authCode);
         if($ret->code != 2) {
-            $this->flashJson(500, array(), strval($ret->msg));
+            $this->flashJson(500, array(), strval($ret->msg) . " --- auth code: " . $authCode);
         }
+        
+        getDI()->get('session')->set('smsid', intval($ret->smsid));
+        getDI()->get('session')->set('phone', $phone);
+        
         $this->flashJson(200, array('smsid' => intval($ret->smsid), 'phone' => $phone));
     }
    
@@ -114,9 +120,9 @@ class UserController extends ControllerBase
             'message' => '密码必须',
         )));
         $validator->add('password', new StringLength(array(
-            'max' => 32,
+            'max' => 12,
             'min' => 6,
-            'messageMaXimum' => '密码长度不能超过 32 ',
+            'messageMaXimum' => '密码长度不能超过 12 ',
             'messageMinimum' => '密码长度不能小于 6 '
         )));
 
@@ -145,8 +151,14 @@ class UserController extends ControllerBase
         $postAuthCode = trim($this->request->getPost('authcode'));        
 
         $sessAuthCode = getDI()->get('session')->get('authcode');
+        $sessPhone = getDI()->get('session')->get('phone');
+        $sessSmsid = getDI()->get('session')->get('smsid');
         if($postAuthCode != $sessAuthCode) {
             $this->flashJson(500, array(), "验证码错误");
+        }
+
+        if($phone != $sessPhone) {
+            $this->flashJson(500, array(), "手机号码错误");
         }
 
         $userModel = UserModel::findFirst("phone='{$phone}'");
@@ -179,7 +191,7 @@ class UserController extends ControllerBase
         if(empty($userModel)) {
             $this->flashJson(500, array(), "用户不存在或密码错误，请重试");
         } else {
-            $this->flashJson(200, array(),  "登录成功");
+            $this->flashJson(200, array("uid" => $userModel->id),  "登录成功");
         }
     }
   
