@@ -60,6 +60,11 @@ class RoomController extends ControllerBase
       $this->flashJson(200, array(), "新增房间成功"); 
   }
 
+  public function closeAction()
+  {
+
+  }
+
   public function joinAction()
   {
 
