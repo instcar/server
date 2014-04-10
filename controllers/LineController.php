@@ -48,7 +48,7 @@ class LineController extends ControllerBase {
 			}
 			$this->flashJson ( 500, array (), join ( "; ", $errMsgs ) );
 		}
-		$this->flashJson ( 200, array (), "恭喜您，新增路线成功！" );
+		$this->flashJson ( 200, array ('lineid'=>$line->id), "恭喜您，新增路线成功！" );
 	}
 	
 	/**
@@ -251,8 +251,8 @@ class LineController extends ControllerBase {
 		$line_point = new LinePointModel ();
 		$where = array (
 				"limit" => array (
-						"number" => $rows,
-						"offset" => $offset 
+					"number" => $rows,
+					"offset" => $offset 
 				),
 				"order" => "id DESC",
 				"conditions" => "point_id='{$point_id}'" 
@@ -356,5 +356,32 @@ class LineController extends ControllerBase {
 		}
 		$return = array('total'=>$count,'list'=>$data);		
 		$this->flashJson(200, $return ,'');
+	}
+	
+	/**
+	 * *
+	 * 根据线路ID获取线路详情
+	 */
+	public function listLineByIdAction() {
+		$line_id = intval ( $this->request->getPost ( 'lineid' ) );
+		$all = intval ( $this->request->getPost ( 'all' ) );	
+		$line = new LineModel ();
+	
+		$lines = $line->findFirst ( 'id='.$line_id );
+		if (! $lines) {
+			$this->flashJson ( 404, array (), 'Not Found line info' );
+		}
+		$data = $lines->toArray();
+		
+		$line_point = new LinePointModel ();
+		if ($all) {
+			$line_point_info = $line_point->find ( "line_id='{$data['id']}'" );
+			$list = array ();
+			foreach ( $line_point_info as $ii ) {
+				$list [] = $ii->toArray ();
+			}
+			$data['list'] = $list;
+		}		
+		$this->flashJson(200, $data ,'');
 	}
 }
