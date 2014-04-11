@@ -169,6 +169,10 @@ class PointController extends ControllerBase {
 				"list" => $data 
 		), "" );
 	}
+	
+	/**
+	 * 根据经纬度获取最近的聚点分页数据
+	 */
 	public function nearestlistAction() {
 		$lat = trim ( $this->request->getPost ( 'lat' ) );
 		$lng = trim ( $this->request->getPost ( 'lng' ) );
