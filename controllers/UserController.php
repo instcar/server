@@ -184,6 +184,10 @@ class UserController extends ControllerBase
 
     public function loginAction()
     {
+        if($this->user) {
+            $this->flashJson(200, array(), "您已经登录");
+        }
+        
         $validator = new \Phalcon\Validation();
         $validator->add('phone', new PresenceOf(array(
             'message' => '手机号必须',
@@ -221,7 +225,7 @@ class UserController extends ControllerBase
             $this->flashJson(500, array(), "用户不存在或密码错误，请重试");
         } else {
             getDI()->get('session')->set('identity', $userModel->id);
-            $this->flashJson(200, array("uid" => $userModel->id),  "登录成功");
+            $this->flashJson(200, array("id" => intval($userModel->id)),  "登录成功");
         }
     }
   
