@@ -170,7 +170,7 @@ class UserController extends ControllerBase
         
         $userModel = new UserModel();
         $userModel->phone = $phone;
-        $userModel->password = md5($password);
+        $userModel->password = $this->crypt->encryptBase64($password);
         $userModel->status = 0;
         if($userModel->save() === false) {
             $errMsgs =  array();
@@ -218,14 +218,18 @@ class UserController extends ControllerBase
         
         $phone = trim($this->request->getPost('phone'));
         $password = trim($this->request->getPost('password'));
-        $encryptPassword = md5($password);
-        
-        $userModel = UserModel::findFirst("phone='{$phone}' AND password='{$encryptPassword}'");
+        // $encryptPassword = $this->crypt->encryptBase64($password);
+
+        $userModel = UserModel::findFirst("phone='{$phone}'");
         if(empty($userModel)) {
-            $this->flashJson(500, array(), "用户不存在或密码错误，请重试");
+            $this->flashJson(500, array(), "用户不存在，请重试");
         } else {
-            getDI()->get('session')->set('identity', $userModel->id);
-            $this->flashJson(200, array("id" => intval($userModel->id)),  "登录成功");
+            if(trim($this->crypt->decryptBase64($userModel->password)) == $password) {
+                getDI()->get('session')->set('identity', $userModel->id);
+                $this->flashJson(200, array("id" => intval($userModel->id)),  "登录成功");
+            } else {
+                $this->flashJson(500, array(), "密码错误，请重试");
+            }
         }
     }
   
@@ -276,10 +280,10 @@ class UserController extends ControllerBase
         }
         getDI()->get('logger')->error("session", $_SESSION);
         $validator = new \Phalcon\Validation();
-        $validator->add('uid', new PresenceOf(array(
+        $validator->add('id', new PresenceOf(array(
             'message' => '用户ID必须',
         )));
-        $validator->add('uid', new BetweenValidator(array(
+        $validator->add('id', new BetweenValidator(array(
             'minimum' => 1,
             'maximum' => 1000000000,
             'message' => '用户ID必须大于0'
@@ -294,14 +298,20 @@ class UserController extends ControllerBase
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
         
-        $userId = intval($this->request->getPost('uid'));
+        $userId = intval($this->request->getPost('id'));
 
         $userModel = UserModel::findFirst($userId);
+
+        $retArr = array();
         if(empty($userModel)) {
             $this->flashJson(500, array(), '用户不存在！');
         }
-        $userModel->password = null;
-        $this->flashJson(200, $userModel->toArray());
+        $retArr = $userModel->toArray();
+        
+        if(!empty($userModel->user_detail)) {
+            $retArr['detail'] = $userModel->user_detail->toArray();
+        }
+        $this->flashJson(200, $retArr);
 
     }
 
