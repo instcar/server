@@ -2,6 +2,9 @@
 namespace Instcar\Server\Controllers;
 use Instcar\Server\Models\User as UserModel;
 use Instcar\Server\Models\UserDetail as UserDetailModel;
+use Instcar\Server\Models\Car as CarModel;
+use Instcar\Server\Models\UserCar as UserCarModel;
+
 use Phalcon\Validation\Validator\Regex as RegexValidator;
 use Phalcon\Validation\Validator\PresenceOf;
 use Phalcon\Validation\Validator\StringLength as StringLength;
@@ -249,12 +252,10 @@ class UserController extends ControllerBase
             'info',
         );
         
-        $userArray = $this->user->toArray();
-
         foreach ($_POST as $key => $val) {
             if(in_array($key, $skipAttributes)) {
                 unset($_POST[$key]);
-            } else if (array_key_exists($key, $userArray)) {
+            } else if (array_key_exists($key, $this->user->toArray())) {
                 $this->user->{$key} = $val;
             } else {
                 if(empty($this->user->user_detail)) {
@@ -274,9 +275,83 @@ class UserController extends ControllerBase
         
         $this->flashJson(200,  array(), "操作成功");
     }
-    
-    public function editHeadPicAction()
+
+    public function realnameRequestAction()
     {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        
+        $idCards = (array) $this->request->getPost('id_cards');
+        
+        if(empty($this->user->user_detail)) {
+            $userInfo = array();            
+            $this->user->user_detail = new UserDetailModel();
+        } else {
+            $userInfo = json_decode($this->user->user_detail->info, true);
+        }
+        
+        $userInfo['id_cards'] = $idCards;
+        $this->user->user_detail->info = json_encode($userInfo);
+        
+        if($this->user->save() == false) {
+            $errMsgs =  array();
+            foreach($this->user->getMessages() as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));            
+        }
+        $this->flashJson(200,  array(), "操作成功");        
+    }
+
+    public function userAddCarAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        
+        $carId = $this->request->getPost('car_id');
+        if($carId <=0 ) {
+            $this->flashJson(500, array(), "非法请求：汽车ID必须大于0");
+        }
+        
+        $carModel = CarModel::findFirst($carId);
+        if(empty($carModel)) {
+            $this->flashJson(500, array(), "非法请求：所选汽车不存在");
+        }
+
+        $carInfo = array();
+        
+        $license = (array) $this->request->getPost('license');
+
+        if(empty($license)) {
+            $this->flashJson(500, array(), "必须上传行驶证照");
+        }
+        
+        $cars = (array) $this->request->getPost('cars');
+
+        if(count($cars) < 2) {
+            $this->flashJson(500, array(), "必须上传2张及以上靓车照");
+        }
+
+        $carInfo['license'] = $license;
+        $carInfo['cars'] = $cars;
+
+        $userCarModel = new UserCarModel();
+        $userCarModel->user_id = $this->user->id;
+        $userCarModel->car_id = $carModel->id;
+        $userCarModel->info = json_encode($carInfo);
+        $userCarModel->status = 1;
+
+        if($userCarModel->save() == false) {
+            $errMsgs =  array();
+            foreach($userCarModel->getMessages() as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));                        
+        }
+
+        $this->flashJson(200, array(), "操作成功");
         
     }
 
@@ -290,24 +365,9 @@ class UserController extends ControllerBase
         
     }
 
-    public function editEmailAction()
-    {
-        
-    }
-
     public function editUsernameAction()
     {
         
-    }
-
-    public function editAgeAction()
-    {
-
-    }
-
-    public function editSexAction()
-    {
-
     }
 
     public function editCompanyAddressAction()

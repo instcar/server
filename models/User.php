@@ -7,6 +7,7 @@ class User extends \Phalcon\Mvc\Model
     public $phone;
     public $name = '';
     public $sex = 2;
+    public $age = 0;
     public $password;
     public $email = '';
     public $headpic = '';
@@ -18,6 +19,7 @@ class User extends \Phalcon\Mvc\Model
     {
         $this->setConnectionService('db');
         $this->hasOne('id', '\Instcar\Server\Models\UserDetail', 'user_id', array('alias' => 'user_detail'));
+        $this->hasMany('id', '\Instcar\Server\Models\UserCar', 'user_id', array('alias' => 'user_car'));
     }
 
     public function beforeValidationOnCreate()
