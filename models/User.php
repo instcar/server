@@ -5,11 +5,11 @@ class User extends \Phalcon\Mvc\Model
 {
     public $id;
     public $phone;
-    public $name;
+    public $name = '';
     public $sex = 2;
     public $password;
     public $email = '';
-    public $headpic;
+    public $headpic = '';
     public $status = 0;
     public $addtime = '0000-00-00 00:00:00';
     public $modtime;
@@ -25,7 +25,7 @@ class User extends \Phalcon\Mvc\Model
         $this->addtime = date("Y-m-d H:i:s");
         $this->modtime = date("Y-m-d H:i:s");
     }
-    
+
     public function beforeUpdate()
     {
         $this->modtime = date("Y-m-d H:i:s");

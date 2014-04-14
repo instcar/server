@@ -1,6 +1,7 @@
 <?php
 namespace Instcar\Server\Controllers;
 use Instcar\Server\Models\User as UserModel;
+use Instcar\Server\Models\UserDetail as UserDetailModel;
 use Phalcon\Validation\Validator\Regex as RegexValidator;
 use Phalcon\Validation\Validator\PresenceOf;
 use Phalcon\Validation\Validator\StringLength as StringLength;
@@ -232,10 +233,51 @@ class UserController extends ControllerBase
             }
         }
     }
-  
+
+    public function editAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        
+        $skipAttributes = array(
+            'id',
+            'phone',
+            'user_id',
+            'password',
+            'status',
+            'info',
+        );
+        
+        $userArray = $this->user->toArray();
+
+        foreach ($_POST as $key => $val) {
+            if(in_array($key, $skipAttributes)) {
+                unset($_POST[$key]);
+            } else if (array_key_exists($key, $userArray)) {
+                $this->user->{$key} = $val;
+            } else {
+                if(empty($this->user->user_detail)) {
+                    $this->user->user_detail = new UserDetailModel();
+                }
+                $this->user->user_detail->{$key} = $val;
+            }
+        }
+        
+        if($this->user->save() == false) {
+            $errMsgs =  array();
+            foreach($this->user->getMessages() as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));            
+        }
+        
+        $this->flashJson(200,  array(), "操作成功");
+    }
+    
     public function editHeadPicAction()
     {
-
+        
     }
 
     public function editPasswordAction()
