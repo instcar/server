@@ -5,7 +5,7 @@ namespace Instcar\Server\Controllers;
 use Instcar\Server\Models\LinePoint as LinePointModel;
 use Instcar\Server\Models\Line as LineModel;
 use Instcar\Server\Models\Point as PointModel;
-use Instcar\Server\Models\LinePoint;
+use Instcar\Server\Models\UserLine as UserLineModel;
 
 class LineController extends ControllerBase {
 	// public function __construct()
@@ -383,5 +383,12 @@ class LineController extends ControllerBase {
 			$data['list'] = $list;
 		}		
 		$this->flashJson(200, $data ,'');
+	}
+	
+	/**
+	 * 用户收藏线路
+	 */
+	public function favorite(){
+		
 	}
 }
