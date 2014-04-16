@@ -8,16 +8,12 @@
 
 namespace Instcar\Server\Models;
 
-class Room extends \Phalcon\Mvc\Model
+class RoomUser extends \Phalcon\Mvc\Model
 {
     public $id;
     public $user_id;
-    public $line_id;
-    public $price;
+    public $room_id;
     public $status;
-    public $description;
-    public $start_time;
-    public $max_seat_num;
     public $addtime;
     public $modtime;
 
@@ -39,6 +35,6 @@ class Room extends \Phalcon\Mvc\Model
     
     public function getSource()
     {
-        return "room";
+        return "room_user";
     } 
 }
