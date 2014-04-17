@@ -33,11 +33,20 @@ class ControllerBase extends \Phalcon\Mvc\Controller
     {
         $this->response->setContentType('application/json');
         $this->response->sendHeaders();
-        echo json_encode(array(
-            'status' => intval($status),
-            'data'   => $data,
-            'msg'    => $msg,
-        ));
+        if(empty($data)) {
+            echo json_encode(array(
+                'status' => intval($status),
+                'data'   => $data,
+                'msg'    => $msg,
+            ), JSON_FORCE_OBJECT );
+        } else {
+            echo json_encode(array(
+                'status' => intval($status),
+                'data'   => $data,
+                'msg'    => $msg,
+            ));
+        }
+        
         exit ;
     }
 }

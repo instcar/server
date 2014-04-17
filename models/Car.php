@@ -15,6 +15,7 @@ class Car extends \Phalcon\Mvc\Model
     public function initialize()
     {
         $this->setConnectionService('db');
+        $this->hasMany('id', '\Instcar\Server\Models\UserCar', 'car_id', array('alias' => 'user_car'));
     }
 
     public function beforeValidationOnCreate()

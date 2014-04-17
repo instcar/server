@@ -9,6 +9,9 @@ use Phalcon\Validation\Validator\Regex as RegexValidator;
 use Phalcon\Validation\Validator\PresenceOf;
 use Phalcon\Validation\Validator\StringLength as StringLength;
 use Phalcon\Validation\Validator\Between as BetweenValidator;
+use Phalcon\Validation\Validator\Email as EmailValidator;
+use Phalcon\Validation\Validator\InclusionIn as InclusionInValidator;
+use Phalcon\Validation\Validator\Url as UrlValidator;
 
 class UserController extends ControllerBase
 {
@@ -189,7 +192,7 @@ class UserController extends ControllerBase
     public function loginAction()
     {
         if($this->user) {
-            $this->flashJson(200, array(), "您已经登录");
+            $this->flashJson(200, array("id" => intval($this->user->id)), "您已经登录");
         }
         
         $validator = new \Phalcon\Validation();
@@ -237,6 +240,19 @@ class UserController extends ControllerBase
         }
     }
 
+    public function logoutAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        try {
+            $this->session->destroy();
+        } catch (\Exception $e) {
+            $this->flashJson(500, array(), "服务端错误: 用户会话清除失败");
+        }
+        $this->flashJson(200);
+    }
+    
     public function editAction()
     {
         if(!$this->user) {
@@ -251,6 +267,59 @@ class UserController extends ControllerBase
             'status',
             'info',
         );
+
+        $validator = new \Phalcon\Validation();
+
+        if(array_key_exists('name', $_POST)) {
+            $validator->add('name', new StringLength(array(
+                'min'  => 6,
+                'max'  => 16,
+                'messageMaximum' => '昵称不能超过16个字',
+                'messageMinimum' => '昵称不能少于6个字',
+            )));
+        }
+
+        if(array_key_exists('email', $_POST)) {
+            $validator->add('email', new EmailValidator(array(
+                'message' => '邮箱格式不正确',
+            )));
+        }
+
+        if(array_key_exists('sex', $_POST)) {
+            $validator->add('sex', new InclusionInValidator(array(
+                'message' => '性别只能为, 女:0,男:1,保密:2',
+                'domain'  => array(0, 1, 2),
+            )));
+        }
+
+        if(array_key_exists('show_home_addr', $_POST)) {
+            $validator->add('show_home_addr', new InclusionInValidator(array(
+                'message' => '是否显示家庭住址只接受0或1',
+                'domain'  => array(0, 1),
+            )));
+        }
+
+        if(array_key_exists('show_comp_addr', $_POST)) {
+            $validator->add('show_comp_addr', new InclusionInValidator(array(
+                'message' => '是否显示公司住址只接受0或1',
+                'domain'  => array(0, 1),
+            )));
+        }
+
+        if(array_key_exists('headpic', $_POST)) {
+            $validator->add('headpic', new UrlValidator(array(
+                'message' => '头像地址必须是合法的URL'
+            )));
+        }
+        
+        $messages = $validator->validate($_POST);
+        if (count($messages)) {
+            $errMsgs = array();
+            foreach($messages as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }        
         
         foreach ($_POST as $key => $val) {
             if(in_array($key, $skipAttributes)) {
@@ -304,13 +373,13 @@ class UserController extends ControllerBase
         $this->flashJson(200,  array(), "操作成功");        
     }
 
-    public function userAddCarAction()
+    public function addCarAction()
     {
         if(!$this->user) {
             $this->flashJson(401);
         }
         
-        $carId = $this->request->getPost('car_id');
+        $carId = intval($this->request->getPost('car_id'));
         if($carId <=0 ) {
             $this->flashJson(500, array(), "非法请求：汽车ID必须大于0");
         }
@@ -323,13 +392,11 @@ class UserController extends ControllerBase
         $carInfo = array();
         
         $license = (array) $this->request->getPost('license');
-
         if(empty($license)) {
             $this->flashJson(500, array(), "必须上传行驶证照");
         }
         
         $cars = (array) $this->request->getPost('cars');
-
         if(count($cars) < 2) {
             $this->flashJson(500, array(), "必须上传2张及以上靓车照");
         }
@@ -341,7 +408,7 @@ class UserController extends ControllerBase
         $userCarModel->user_id = $this->user->id;
         $userCarModel->car_id = $carModel->id;
         $userCarModel->info = json_encode($carInfo);
-        $userCarModel->status = 1;
+        $userCarModel->status = 1; /* 车辆待审 */
 
         if($userCarModel->save() == false) {
             $errMsgs =  array();
@@ -350,9 +417,81 @@ class UserController extends ControllerBase
             }
             $this->flashJson(500, array(), join("; ", $errMsgs));                        
         }
-
         $this->flashJson(200, array(), "操作成功");
+    }
+
+    public function getCarsAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        $carId = intval($this->request->getPost('car_id'));
         
+        if($carId < 0) {
+            $this->flashJson(500, array(), "非法访问：CarID必须大于0");
+        }
+
+        $retArr = array();
+        
+        if($carId == 0) {
+            if(!empty($this->user->user_car)){
+                foreach ($this->user->user_car as $userCarModel) {
+                    $car = array();
+                    $car = $userCarModel->toArray();
+                    $car['name'] = $userCarModel->car->name;
+                    $car['picture'] = $userCarModel->car->picture;
+                    $retArr[] = $car;
+                }
+                $this->flashJson(200, array('total' => count($retArr), 'list' => $retArr));
+            }
+        }
+        
+        if($carId > 0) {
+            $where = "user_id = ".$this->user->id." AND car_id = ".$carId;
+            $userCarModel = UserCarModel::findFirst($where);
+        
+            if(empty($userCarModel)) {
+                $this->flashJson(500, array(), "非法访问：您没有登记该汽车");
+            }
+
+            $retArr = $userCarModel->toArray();
+            $retArr['name'] = $userCarModel->car->name;
+            $retArr['picture'] = $userCarModel->car->picture;            
+
+            $this->flashJson(200, $retArr);
+        }
+    }
+
+    public function hasCarAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        $where = "user_id = ".$this->user->id." AND status = 0";
+        $userCarCollection = UserCarModel::find($where);
+        $count = 0;
+        if(!empty($userCarCollection)) {
+            $count = $userCarCollection->count();
+        }
+        $this->flashJson(200, array('total' => $count));
+    }
+    
+    public function getCarStatusAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        $carId = intval($this->request->getPost('car_id'));
+        if($carId <= 0) {
+            $this->flashJson(500, array(), "非法访问：car_id必须大于0");
+        }
+        $where = "user_id = ".$this->user->id." AND car_id = ".$carId;
+        $userCarModel = UserCarModel::findFirst($where);
+        
+        if(empty($userCarModel)) {
+            $this->flashJson(500, array(), "非法访问：您没有该汽车");
+        }
+        $this->flashJson(200, array('status'=> $userCarModel->status));
     }
 
     public function editPasswordAction()
