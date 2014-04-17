@@ -420,4 +420,59 @@ class LineController extends ControllerBase {
 		
 		$this->flashJson ( 200, array (), "恭喜您，收藏路线成功！" );
 	}
+	
+	/**
+	 * 用户收藏线路
+	 */
+	public function favoriteListAction() {
+		$page = intval ( $this->request->getPost ( 'page' ) );
+		$page = $page < 1 ? 1 : $page;
+		$rows = intval ( $this->request->getPost ( 'rows' ) );
+		$rows = $rows < 1 ? 10 : $rows;
+		$offset = ($page - 1) * $rows;
+		
+		if(!$this->user) {
+			$this->flashJson(401,array(),'Unauthorized');
+		}
+		
+		$where = array (
+				"limit" => array (
+						"number" => $rows,
+						"offset" => $offset
+				),
+				"conditions" => 'user_id='.$this->user->id,
+				"order" => "id DESC"
+		);
+		
+		
+		$user_line = new UserLineModel();
+		$userlines = $user_line->find ( $where );
+		$userlines = $userlines->toArray();
+		
+		if (! $userlines) {
+			$this->flashJson ( 404, array (), 'Not Found line info' );
+		}		
+		
+		$line_ids = array();
+		foreach ( $userlines as $i ) {
+			$line_ids[] = $i['line_id'];
+		}			
+		$ids = implode(",", $line_ids);	
+		
+		$where = array(
+				"conditions" => 'id in ('.$ids.")"
+		);
+		$line = new LineModel();
+		$lines = $line->find($where);
+		$list = $lines->toArray();
+		 
+		$where = array (
+			"conditions" => 'user_id='.$this->user->id
+		);
+		$count = $user_line->count( $where );
+				
+		$data = array('total'=>$count,"list"=>$list);
+		$this->flashJson(200, $data ,'');
+		
+	}
 }
