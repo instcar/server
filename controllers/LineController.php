@@ -388,7 +388,36 @@ class LineController extends ControllerBase {
 	/**
 	 * 用户收藏线路
 	 */
-	public function favorite(){
+	public function favoriteAction() {
+		$line_id = intval ( $this->request->getPost ( 'lineid' ) );
+		$line = new LineModel ();
 		
+		$lines = $line->findFirst ( 'id='.$line_id );
+		if (! $lines) {
+			$this->flashJson ( 404, array (), 'Not Found line info' );
+		}
+		
+		if(!$this->user) {
+			$this->flashJson(401,array(),'Unauthorized');
+		}
+		
+		$user_line = new UserLineModel();
+		$userlines = $user_line->findFirst('line_id='.$line_id);
+		if ($userlines ) {
+			$this->flashJson ( 500, array (), '您已经收藏过该线路' );
+		}
+		$user_line->user_id = $this->user->id;
+		$user_line->line_id = $line_id;
+		$user_line->addtime = $user_line->modtime = date ( 'Y-m-d H:i:s' );
+		
+		if ($user_line->create () === false) {
+			$errMsgs = array ();
+			foreach ( $user_line->getMessages () as $message ) {
+				$errMsgs [] = $message->__toString ();
+			}
+			$this->flashJson ( 500, array (), join ( "; ", $errMsgs ) );
+		}
+		
+		$this->flashJson ( 200, array (), "恭喜您，收藏路线成功！" );
 	}
 }
