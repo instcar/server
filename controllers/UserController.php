@@ -110,7 +110,7 @@ class UserController extends ControllerBase
         
         getDI()->get('session')->set('smsid', intval($ret->smsid));
 
-        $this->flashJson(200, array('smsid' => intval($ret->smsid), 'phone' => $phone));
+        $this->flashJson(200, array('smsid' => intval($ret->smsid), 'phone' => $phone, 'authcode' => $authCode));
     }
    
     public function registerAction()
@@ -186,13 +186,33 @@ class UserController extends ControllerBase
             }
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
+
+        try {
+            $conn = new \XMPPHP_XMPP(
+                '115.28.231.132',
+                13000,
+                'admin',
+                'k1990855',
+                'xmpphp',
+                'ay140222164105110546z',
+                false,
+                \XMPPHP_Log::LEVEL_INFO);
+
+            $conn->connect();
+            $conn->processUntil('session_start');
+            $conn->presence();
+            $conn->registerNewUser($phone, '123456', '', '', 'ay140222164105110546z');
+        } catch (\XMPPHP_Exception $e) {
+            // ...
+        }
+        
         $this->flashJson(200, array(), "恭喜您，注册成功！");
     }
 
     public function loginAction()
     {
         if($this->user) {
-            $this->flashJson(200, array("id" => intval($this->user->id)), "您已经登录");
+            $this->flashJson(200, array("id" => $this->user->id), "您已经登录");
         }
         
         $validator = new \Phalcon\Validation();
@@ -233,7 +253,7 @@ class UserController extends ControllerBase
         } else {
             if(trim($this->crypt->decryptBase64($userModel->password)) == $password) {
                 getDI()->get('session')->set('identity', $userModel->id);
-                $this->flashJson(200, array("id" => intval($userModel->id)),  "登录成功");
+                $this->flashJson(200, array("id" => $userModel->id),  "登录成功");
             } else {
                 $this->flashJson(500, array(), "密码错误，请重试");
             }
@@ -292,6 +312,14 @@ class UserController extends ControllerBase
             )));
         }
 
+        if(array_key_exists('signature', $_POST)){
+            $validator->add('signature', new StringLength(array(
+                'max' => 48,
+                'min' => 1,
+                'message' => '用户签名长度最大不能超过48个字',
+            )));
+        }
+        
         if(array_key_exists('show_home_addr', $_POST)) {
             $validator->add('show_home_addr', new InclusionInValidator(array(
                 'message' => '是否显示家庭住址只接受0或1',
@@ -428,7 +456,7 @@ class UserController extends ControllerBase
         $carId = intval($this->request->getPost('car_id'));
         
         if($carId < 0) {
-            $this->flashJson(500, array(), "非法访问：CarID必须大于0");
+            $this->flashJson(500, array(), "非法访问：car_id必须大于0");
         }
 
         $retArr = array();
@@ -442,23 +470,27 @@ class UserController extends ControllerBase
                     $car['picture'] = $userCarModel->car->picture;
                     $retArr[] = $car;
                 }
-                $this->flashJson(200, array('total' => count($retArr), 'list' => $retArr));
             }
+            $this->flashJson(200, array('total' => count($retArr), 'list' => $retArr));            
         }
         
         if($carId > 0) {
             $where = "user_id = ".$this->user->id." AND car_id = ".$carId;
-            $userCarModel = UserCarModel::findFirst($where);
+            $userCarCollection = UserCarModel::find($where);
         
-            if(empty($userCarModel)) {
+            if(empty($userCarCollection)) {
                 $this->flashJson(500, array(), "非法访问：您没有登记该汽车");
             }
-
-            $retArr = $userCarModel->toArray();
-            $retArr['name'] = $userCarModel->car->name;
-            $retArr['picture'] = $userCarModel->car->picture;            
-
-            $this->flashJson(200, $retArr);
+            
+            foreach ($userCarCollection as $userCarModel) {
+                $car = array();
+                $car = $userCarModel->toArray();
+                $car['name'] = $userCarModel->car->name;
+                $car['picture'] = $userCarModel->car->picture;
+                $retArr[] = $car;
+            }
+            
+            $this->flashJson(200, array('total' => count($retArr), 'list' => $retArr));
         }
     }
 
