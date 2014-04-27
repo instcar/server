@@ -25,11 +25,9 @@ class Acl extends Plugin
         if(!$userId) {
         } else {
             $dbUser = \Instcar\Server\Models\User::findFirst(intval($userId));
-            if(empty($dbUser)) {
-                echo '{"status":401, "data":{}, "msg":""}';
-                return false;
+            if(!empty($dbUser)) {
+                $this->di->set('user', $dbUser);
             }
-            $this->di->set('user', $dbUser);
         }
         return true;
     }

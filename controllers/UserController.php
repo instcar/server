@@ -568,14 +568,4 @@ class UserController extends ControllerBase
         $this->flashJson(200, $retArr);
 
     }
-
-    public function simpleDetailAction()
-    {
-
-    }
-
-    public function infoCenterAction()
-    {
-
-    }
 }
