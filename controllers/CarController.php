@@ -36,9 +36,21 @@ class CarController extends ControllerBase
 		}
 		$datas = $brands->toArray();
 		
+		$data = $datatmp = array();
 		foreach($datas  as $item){
-			$data[$item['brand']][] = $item;
+			$datatmp[$item['brand']][] = $item;
 		};
+		
+		foreach ($datatmp as $key=>$item){
+			$list = $tmp = array();
+			foreach ($item as $ii){
+				$list[]=$ii;
+			}
+			$tmp['name'] = $key;
+			$tmp['list'] = $list;
+			$data[] = $tmp;
+		}
+		
 		$this->flashJson ( 200, $data, '' );
 	}
 }
