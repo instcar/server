@@ -7,7 +7,6 @@
   *Brief  : api for room
   */
 
-
 namespace Instcar\Server\Controllers;
 
 use Instcar\Server\Models\Room as RoomModel;
@@ -39,11 +38,14 @@ class RoomController extends ControllerBase
           $this->flashJson(500, array(), "用户id不能为空");
         }
 
+        /// TODO 确认user_id存在性
+
         $line_id = trim($this->request->getPost('line_id'));
         if (empty($line_id))
         {
           $this->flashJson(500, array(), "路线id不能为空");
         }
+        /// TODO 确认lind_id 存在性
 
         $price = $this->request->getPost('price');
         if (empty($price))
@@ -67,6 +69,22 @@ class RoomController extends ControllerBase
         if (empty($max_seat_num))
         {
           $this->flashJson(500, array(), "最大座位数不能为空");
+        }
+
+        $openfire_room_name = "";
+        try
+        {
+            /// 连接openfire并且创建房间
+            $conn = new \XMPPHP_XMPP('115.28.231.132', 13000, $user_id, '123456', 'xmpphp', 'ay140222164105110546z', false, $loglevel=\XMPPHP_Log::LEVEL_INFO);
+            $conn->connect();
+            $conn->processUntil('session_start');
+            $conn->presence();
+            $conn->createRoom('ay140222164105110546z');
+            $openfire_room_name = "{$user_id}@conference.ay140222164105110546z";
+        }
+        catch(\XMPPHP_Exception $e)
+        {
+            $this->flashJson(500, array(), $e->getMessage());
         }
 
         /// 插入room表
@@ -95,7 +113,7 @@ class RoomController extends ControllerBase
         $room_user = new RoomUserModel();
         $room_user->room_id = $room->id;
         $room_user->user_id = $user_id;
-        $room_user->status = $status;
+        $room_user->status = "0";
 
         if ($room_user->save() == false)
         {
@@ -108,17 +126,24 @@ class RoomController extends ControllerBase
 
         }
 
-        $this->flashJson(200, array('id'=>$room->id), "新增房间成功"); 
+        $this->flashJson(200, array('id'=>$room->id, 'openfire'=>$openfire_room_name), "新增房间成功"); 
     }
 
     /// 司机关闭房间
     public function closeAction()
     {
-     ///删除用户房间对应关系
-      $room_users = RoomUserModel::find("room_id='{$id}'");
-      if ($room_users)
-      {
-          foreach( $room_user in $room_users)
+        /// 获取房间id
+        $room_id = trim($this->request->getPost('room_id'));
+        if (empty($room_id))
+        {
+          $this->flashJson(500, array(), "room的id不能为空");
+        }
+
+        ///删除用户房间对应关系
+        $room_users = RoomUserModel::find("room_id='{$room_id}'");
+        if ($room_users)
+        {
+          foreach( $room_users as $room_user)
           {
               if ($room_user->delete() == false)
               {
@@ -130,48 +155,57 @@ class RoomController extends ControllerBase
                   $this->flashJson(500, array(), join("; ", $errMsgs));
               }
           }
-      }
+        }
+           
+        ///获取房主id, 然后销毁房间
+        $room = RoomModel::findFirst("id='{$room_id}'");
+        if ($room == false)
+        {
+            $this->flashJson(500, array(), "room的id不存在");
+        }
+        $user_id = $room->user_id;
 
-      ///删除房间
-      $id = trim($this->request->getPost('id'));
-      if (empty($id))
-      {
-          $this->flashJson(500, array(), "room的id不能为空");
-      }
+        ///删除聊天室
+        try
+        {
+            /// 连接openfire并且创建房间
+            $conn = new \XMPPHP_XMPP('115.28.231.132', 13000, $user_id, '123456', 'xmpphp', 'ay140222164105110546z', false, $loglevel=\XMPPHP_Log::LEVEL_INFO);
+            $conn->connect();
+            $conn->processUntil('session_start');
+            $conn->presence();
+            $conn->destroyRoom('ay140222164105110546z');
+        }
+        catch(\XMPPHP_Exception $e)
+        {
+            $this->flashJson(500, array(), $e->getMessage());
+        }
 
-      $room = RoomModel::findFirst("id='{$id}'");
-      if ($room == false)
-      {
-          $this->flashJson(500, array(), "room的id不存在");
-      }
-
-      if ($room->delete() == false)
-      {
+        ///删除房间
+        if ($room->delete() == false)
+        {
           $errMsgs = array();
           foreach ($room->getMessages() as $message)
           {
               $errMsgs[] = $message->__toString();
           }
           $this->flashJson(500, array(), join("; ", $errMsgs));
-      }
+        }
 
-
-      $this->flashJson(200, array(), "room删除成功");
-
+        $this->flashJson(200, array(), "room删除成功");
     }
 
     /// 司机修改房间状态
     /// 等待->开始运行
     public function changeStateAction()
     {
-        $room_id = trim($this->requst->getPost('room_id'));
+        $room_id = trim($this->request->getPost('room_id'));
         if (empty($room_id))
         {
             $this->flashJson(500, array(), "room 的id不能为空");
         }
 
         $state = trim($this->request->getPost('state'));
-        if (empty($description))
+        if (empty($state))
         {
             $this->flashJson(500, array(), "room 的state不能为空");
         }
@@ -194,20 +228,20 @@ class RoomController extends ControllerBase
           $this->flashJson(500, array(), join("; ", $errMsgs));
         }
 
-       $this->flashJson(500, array(), "房间描述修改成功"); 
+       $this->flashJson(200, array(), "房间状态修改成功"); 
     }
 
     /// 司机修改出发时间
     public function changeStartTimeAction()
     {
-        $room_id = trim($this->requst->getPost('room_id'));
+        $room_id = trim($this->request->getPost('room_id'));
         if (empty($room_id))
         {
             $this->flashJson(500, array(), "room 的id不能为空");
         }
 
         $start_time = trim($this->request->getPost('start_time'));
-        if (empty($description))
+        if (empty($start_time))
         {
             $this->flashJson(500, array(), "room 的start_time不能为空");
         }
@@ -230,15 +264,13 @@ class RoomController extends ControllerBase
           $this->flashJson(500, array(), join("; ", $errMsgs));
         }
 
-       $this->flashJson(500, array(), "房间描述修改成功"); 
-
-
+       $this->flashJson(200, array(), "房间启动时间修改成功"); 
     }
 
     /// 司机修改房间说明
     public function changeRoomDescAction()
     {
-        $room_id = trim($this->requst->getPost('room_id'));
+        $room_id = trim($this->request->getPost('room_id'));
         if (empty($room_id))
         {
             $this->flashJson(500, array(), "room 的id不能为空");
@@ -268,14 +300,13 @@ class RoomController extends ControllerBase
           $this->flashJson(500, array(), join("; ", $errMsgs));
         }
 
-       $this->flashJson(500, array(), "房间描述修改成功"); 
-
+       $this->flashJson(200, array(), "房间描述修改成功"); 
     }
 
     /// 司机修改最大座位数
     public function changeMaxSeatNumAction()
     {
-        $room_id = trim($this->requst->getPost('room_id'));
+        $room_id = trim($this->request->getPost('room_id'));
         if (empty($room_id))
         {
             $this->flashJson(500, array(), "room 的id不能为空");
@@ -305,8 +336,7 @@ class RoomController extends ControllerBase
           $this->flashJson(500, array(), join("; ", $errMsgs));
         }
 
-       $this->flashJson(500, array(), "房间最大座位数修改成功"); 
-
+       $this->flashJson(200, array(), "房间最大座位数修改成功"); 
     }
 
     /// 乘客加入房间
@@ -334,7 +364,7 @@ class RoomController extends ControllerBase
         $room_user = new RoomUserModel();
         $room_user->room_id = $room_id;
         $room_user->user_id = $user_id;
-        $room_user->statua = 0;
+        $room_user->status = "0";
 
         if ($room_user->save() == false)
         {
@@ -347,19 +377,18 @@ class RoomController extends ControllerBase
         }
 
         $this->flashJson(200, array(), "加入房间成功");
-
     }
 
     /// 乘客退出房间
     public function quitAction()
     {
-        $room_id = trim($this->request_getPost('$room_id'));
+        $room_id = trim($this->request->getPost('room_id'));
         if (empty($room_id))
         {
             $this->flashJson(500, array(), "room 的id不能为空");
         }
 
-        $user_id = trim($this->request_getPost('user_id'))
+        $user_id = trim($this->request->getPost('user_id'));
         if (empty($user_id))
         {
             $this->flashJson(500, array(), "user 的id不能为空");
@@ -382,22 +411,22 @@ class RoomController extends ControllerBase
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
 
-        $this->flashJson(500, array(), "乘客退出房间成功"); 
+        $this->flashJson(200, array(), "乘客退出房间成功"); 
     }
 
 
     /// 查询某条线路的房间列表
     public function getLineRoomsAction()
     {
-        $line_id = trim($this->request->getPost('$line_id'));
+        $line_id = trim($this->request->getPost('line_id'));
         if (empty($line_id))
         {
             $this->flashJson(500, array(), "路线的id不能为空");
         }
 
-        $rooms = RoomModel::find("line_id='${$line_id}'");
+        $rooms = RoomModel::find("line_id='{$line_id}'");
 
-        $data = $array();
+        $data = array();
         foreach ($rooms as $room)
         {
             $tmp = $room->toArray();
@@ -414,21 +443,21 @@ class RoomController extends ControllerBase
     /// 查询某房间的用户列表
     public function getRoomUsersAction()
     {
-        $room_id = trim($this->request->getPost('room_id'))
+        $room_id = trim($this->request->getPost('room_id'));
         if (empty($room_id))
         {
             $this->flashJson(500, array(), "房间的id不能为空");
         }
         
-        $room = RoomModel::findFisrt("id='{$room_id}'");
+        $room = RoomModel::findFirst("id='{$room_id}'");
         if ($room == false)
         {
             $this->flashJson(500, array(), "房间的id不存在");
         }
 
-        $room_users = RoomModel::find("room_id='{$room_id}'"); 
+        $room_users = RoomUserModel::find("room_id='{$room_id}'"); 
         
-        $data = $array();
+        $data = array();
         foreach ($room_users as $room_user)
         {
             $data [] = $room_user->user_id;
@@ -444,7 +473,7 @@ class RoomController extends ControllerBase
     /// 查询某单个房间的信息
     public function getRoomInfoAction()
     {
-        $room_id = trim($this->request->getPost('room_id'))
+        $room_id = trim($this->request->getPost('room_id'));
         if (empty($room_id))
         {
             $this->flashJson(500, array(), "房间的id不能为空");
