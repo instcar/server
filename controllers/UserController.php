@@ -179,6 +179,7 @@ class UserController extends ControllerBase
         $userModel->phone = $phone;
         $userModel->password = $this->crypt->encryptBase64($password);
         $userModel->name = $phone;
+        $userModel->headpic = 'http://instcar-avatar-1.oss-cn-qingdao.aliyuncs.com/portrait_'.rand(1, 20);
         $userModel->status = 0;
         if($userModel->save() === false) {
             $errMsgs =  array();
@@ -426,8 +427,8 @@ class UserController extends ControllerBase
         }
         
         $cars = (array) $this->request->getPost('cars');
-        if(count($cars) < 2) {
-            $this->flashJson(500, array(), "必须上传2张及以上靓车照");
+        if(count($cars) < 1) {
+            $this->flashJson(500, array(), "必须上传1张及以上靓车照");
         }
 
         $carInfo['license'] = $license;
