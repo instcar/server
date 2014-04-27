@@ -552,28 +552,7 @@ class UserController extends ControllerBase
         if(!$this->user) {
             $this->flashJson(401);
         }
-        getDI()->get('logger')->error("session", $_SESSION);
-        $validator = new \Phalcon\Validation();
-        $validator->add('id', new PresenceOf(array(
-            'message' => '用户ID必须',
-        )));
-        $validator->add('id', new BetweenValidator(array(
-            'minimum' => 1,
-            'maximum' => 1000000000,
-            'message' => '用户ID必须大于0'
-        )));
-
-        $messages = $validator->validate($_POST);
-        if (count($messages)) {
-            $errMsgs = array();
-            foreach($messages as $message) {
-                $errMsgs[] = $message->__toString();
-            }
-            $this->flashJson(500, array(), join("; ", $errMsgs));
-        }
-        
-        $userId = intval($this->request->getPost('id'));
-
+        $userId = $this->user->id;
         $userModel = UserModel::findFirst($userId);
 
         $retArr = array();
