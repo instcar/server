@@ -178,6 +178,7 @@ class UserController extends ControllerBase
         $userModel = new UserModel();
         $userModel->phone = $phone;
         $userModel->password = $this->crypt->encryptBase64($password);
+        $userModel->name = $phone;
         $userModel->status = 0;
         if($userModel->save() === false) {
             $errMsgs =  array();
