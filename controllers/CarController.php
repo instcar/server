@@ -24,7 +24,7 @@ class CarController extends ControllerBase
 		$car_brand = new BrandModel();
 		$brand = $car_brand->findFirst("iconname='{$aliasname}'");
 		if ( $brand===FALSE ){
-			$this->flashJson(500, array(), '汽车品牌不存在');
+			$this->flashJson(404, array(), '汽车品牌不存在');
 		}
 		$brand = $brand->toArray();
 		
