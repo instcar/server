@@ -153,6 +153,9 @@ class LineController extends ControllerBase {
 	 */
 	public function addLinePointAction() {
 		$line_id = intval ( $this->request->getPost ( 'lineid' ) );
+		if( empty($line_id) ){
+			$this->flashJson ( 404, array (), 'line id is empty' );
+		}
 		
 		$lines = LineModel::findFirst ( "id='$line_id'" );
 		if ($lines == false) {
@@ -241,6 +244,9 @@ class LineController extends ControllerBase {
 	 */
 	public function listLineByPointIdAction() {
 		$point_id = intval ( $this->request->getPost ( 'pointid' ) );
+		if( empty($point_id) ){
+			$this->flashJson ( 500, array (), 'point id is empty' );
+		}
 		$page = intval ( $this->request->getPost ( 'page' ) );
 		$page = $page < 1 ? 1 : $page;
 		$rows = intval ( $this->request->getPost ( 'rows' ) );
@@ -364,6 +370,10 @@ class LineController extends ControllerBase {
 	 */
 	public function listLineByIdAction() {
 		$line_id = intval ( $this->request->getPost ( 'lineid' ) );
+		if( empty($line_id) ){
+			$this->flashJson ( 404, array (), 'line id is empty' );
+		}
+		
 		$all = intval ( $this->request->getPost ( 'all' ) );	
 		$line = new LineModel ();
 	
@@ -390,6 +400,9 @@ class LineController extends ControllerBase {
 	 */
 	public function favoriteAction() {
 		$line_id = intval ( $this->request->getPost ( 'lineid' ) );
+		if( empty($line_id) ){
+			$this->flashJson ( 404, array (), 'line id is empty' );
+		}
 		$line = new LineModel ();
 		
 		$lines = $line->findFirst ( 'id='.$line_id );
