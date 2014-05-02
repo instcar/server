@@ -146,6 +146,8 @@ class PointController extends ControllerBase {
 		$rows = $rows < 1 ? 10 : $rows;
 		$offset = ($page - 1) * $rows;
 		
+		$search_wd = trim ( $this->request->getPost ( 'wd' ) );
+		
 		$points = new PointModel ();
 		
 		$where = array (
@@ -155,8 +157,16 @@ class PointController extends ControllerBase {
 				),
 				"order" => "id ASC" 
 		);
+		if ($search_wd) {
+			$count_where = $where ['conditions'] = "name like '%{$search_wd}%' ";
+		}
+		
 		$rs = $points->find ( $where );
-		$count = $points->count ();
+		if( $count_where ){
+			$count = $points->count ( $count_where );
+		}else{
+			$count = $points->count ( );
+		}
 		
 		$data = array ();
 		if ($rs) {
