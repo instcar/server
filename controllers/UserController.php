@@ -247,7 +247,6 @@ class UserController extends ControllerBase
         
         $phone = trim($this->request->getPost('phone'));
         $password = trim($this->request->getPost('password'));
-        // $encryptPassword = $this->crypt->encryptBase64($password);
 
         $userModel = UserModel::findFirst("phone='{$phone}'");
         if(empty($userModel)) {
@@ -255,13 +254,21 @@ class UserController extends ControllerBase
         } else {
             if(trim($this->crypt->decryptBase64($userModel->password)) == $password) {
                 getDI()->get('session')->set('identity', $userModel->id);
-                $this->flashJson(200, array("id" => $userModel->id),  "登录成功");
+                
+                // @TODO: remove sessionId here
+                $this->flashJson(200, array("id" => $userModel->id, 'sessionId' => session_id()),  "登录成功");
             } else {
                 $this->flashJson(500, array(), "密码错误，请重试");
             }
         }
     }
 
+    public function isLoginAction()
+    {
+        $userId = intval(getDI()->get('session')->get('identity'));
+        $this->flashJson(200, array('login_status' => ($userId > 0)));
+    }
+    
     public function logoutAction()
     {
         if(!$this->user) {
