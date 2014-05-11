@@ -86,7 +86,6 @@ class RoomController extends ControllerBase
         {
             $this->flashJson(500, array(), $e->getMessage());
         }
-
         /// 插入room表
         $room = new RoomModel();
         $room->user_id = $user_id;
