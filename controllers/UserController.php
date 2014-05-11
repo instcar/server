@@ -13,6 +13,8 @@ use Phalcon\Validation\Validator\Email as EmailValidator;
 use Phalcon\Validation\Validator\InclusionIn as InclusionInValidator;
 use Phalcon\Validation\Validator\Url as UrlValidator;
 
+use Instcar\Server\Plugins\Acl as AclPlugin;
+
 class UserController extends ControllerBase
 {
     public function checkUserPhoneAction()
@@ -540,6 +542,62 @@ class UserController extends ControllerBase
         
     }
 
+    public function listAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+
+        $isAllowed = $this->acl->isAllowed();
+
+        if(!$isAllowed) {
+            $this->flashJson(403);
+        }
+        
+        $currentPage = max(1, $this->request->getQuery('page', 'int'));
+        $limit = max(10, $this->request->getQuery("limit", "int"));
+        
+        $users = UserModel::find();
+        
+        $paginator = new \Phalcon\Paginator\Adapter\Model(
+            array(
+                "data" => $users,
+                "limit"=> $limit,
+                "page" => $currentPage,
+            )
+        );
+        
+        $page = $paginator->getPaginate();
+
+        $ret = array();
+        $ret['total']   = $page->total_pages;
+        $ret['current'] = $page->current;
+        $ret['before']  = $page->before;
+        $ret['next']    = $page->next;
+        $ret['first']   = $page->first;
+        $ret['last']    = $page->last;
+        $ret['list']    = array();
+
+        foreach($page->items as $item) {
+            $aItem = $item->toArray();
+            if(!empty($item->user_detail)) {
+               $aItem['detail'] = $item->user_detail->toArray();
+            }
+            $ret['list'][] = $aItem;
+        }
+        
+        $this->flashJson(200, $ret);        
+    }
+
+    public function isAdminAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        $allowed = $this->acl->isAllowed();
+        $this->flashJson(200, array('status' => $allowed));
+    }
+
     public function resetPasswordAction()
     {
         
@@ -555,12 +613,20 @@ class UserController extends ControllerBase
 
     }
 
-    public function detailAction()
+    public function detailAction($userId = 0)
     {
         if(!$this->user) {
             $this->flashJson(401);
         }
-        $userId = $this->user->id;
+        
+        if($userId > 0) {
+            if(!$this->acl->isAllowed()) {
+                $this->flashJson(403, array(), "您没有权限");
+            }
+        } else {
+            $userId = $this->user->id;
+        }
+        
         $userModel = UserModel::findFirst($userId);
 
         $retArr = array();

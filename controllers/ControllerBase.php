@@ -5,6 +5,7 @@ class ControllerBase extends \Phalcon\Mvc\Controller
 {
     protected $config;
     protected $user;
+    protected $breadcrumb = array();
     
     protected function initialize()
     {
@@ -15,6 +16,12 @@ class ControllerBase extends \Phalcon\Mvc\Controller
         } else {
             $this->user = null;
         }
+
+        $this->breadcrumb = array(
+            'module'     => $this->dispatcher->getModuleName(),
+            'controller' => $this->dispatcher->getControllerName(),
+            'action'     => $this->dispatcher->getActionName(),
+        );
     }
 
     protected function forward($uri)
