@@ -65,6 +65,7 @@ class Module
                 }
             });
             $acl = new \Instcar\Server\Plugins\Acl($di, $evtManager);
+            $di->set('acl', $acl);
             $evtManager->attach('dispatch', $acl);
             $dispatcher = new \Phalcon\Mvc\Dispatcher();
             $dispatcher->setEventsManager($evtManager);

@@ -21,6 +21,7 @@ class User extends \Phalcon\Mvc\Model
         $this->hasOne('id', '\Instcar\Server\Models\UserDetail', 'user_id', array('alias' => 'user_detail'));
         $this->hasMany('id', '\Instcar\Server\Models\UserCar', 'user_id', array('alias' => 'user_car'));
         $this->hasManyToMany('id', '\Instcar\Server\Models\UserCar', 'user_id', 'car_id', '\Instcar\Server\Models\Car', 'id', array('alias' => 'car'));
+        $this->hasMany('id', '\Instcar\Server\Models\Acl', 'user_id', array('alias' => 'acl'));        
     }
 
     public function beforeValidationOnCreate()
