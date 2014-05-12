@@ -620,14 +620,18 @@ class UserController extends ControllerBase
             $this->flashJson(401);
         }
         
-        if($userId > 0) {
+        if($userId > 0 || $userId == -1) {
             if(!$this->acl->isAllowed()) {
                 $this->flashJson(403, array(), "您没有权限");
             }
         } else {
             $userId = $this->user->id;
         }
-        
+
+        if($userId == -1) {
+            $userId = $this->user->id;
+        }
+
         $userModel = UserModel::findFirst($userId);
 
         $retArr = array();

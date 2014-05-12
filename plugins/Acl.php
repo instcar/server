@@ -40,7 +40,7 @@ class Acl extends Plugin
 
     public function isAllowed()
     {
-        $list = $this->di->get('user')->acl;
+        $list = $this->di->get('user')->getAcl("deleted = 0");
         
         if(count($list) == 0) {
             return false;
