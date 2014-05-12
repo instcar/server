@@ -31,7 +31,7 @@ class ControllerBase extends \Phalcon\Mvc\Controller
     		array(
                 'module'     => $uriParts[0],
     			'controller' => $uriParts[1], 
-    			'action' => $uriParts[2]
+    			'action'     => $uriParts[2]
     		)
     	);
     }
