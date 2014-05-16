@@ -554,10 +554,11 @@ class UserController extends ControllerBase
             $this->flashJson(403);
         }
         
-        $currentPage = max(1, $this->request->getQuery('page', 'int'));
-        $limit = max(10, $this->request->getQuery("limit", "int"));
+        $currentPage = max(1, $this->request->getPost('page', 'int'));
+        $limit = max(1, $this->request->getPost("limit", "int"));
+        $query = $this->request->getPost("query", "string");
         
-        $users = UserModel::find();
+        $users = UserModel::find("phone LIKE '{$query}%' OR name LIKE '{$query}%'");
         
         $paginator = new \Phalcon\Paginator\Adapter\Model(
             array(
@@ -619,14 +620,18 @@ class UserController extends ControllerBase
             $this->flashJson(401);
         }
         
-        if($userId > 0) {
+        if($userId > 0 || $userId == -1) {
             if(!$this->acl->isAllowed()) {
                 $this->flashJson(403, array(), "您没有权限");
             }
         } else {
             $userId = $this->user->id;
         }
-        
+
+        if($userId == -1) {
+            $userId = $this->user->id;
+        }
+
         $userModel = UserModel::findFirst($userId);
 
         $retArr = array();
