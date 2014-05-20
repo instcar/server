@@ -6,6 +6,8 @@ use Instcar\Server\Models\LinePoint as LinePointModel;
 use Instcar\Server\Models\Line as LineModel;
 use Instcar\Server\Models\Point as PointModel;
 use Instcar\Server\Models\UserLine as UserLineModel;
+use Instcar\Server\Models\OnlineCar as OnlineCarModel;
+use BullSoft\Geo as Geo;
 
 class LineController extends ControllerBase {
 	// public function __construct()
@@ -487,5 +489,124 @@ class LineController extends ControllerBase {
 		$data = array('total'=>$count,"list"=>$list);
 		$this->flashJson(200, $data ,'');
 		
+	}
+	
+	/**
+	 * *
+	 * 记录车辆经纬度
+	 */
+	public function recordPostionAction() {
+		$lineid = intval ( $this->request->getPost ( 'line_id' ) );
+		$lat = intval ( $this->request->getPost ( 'lat' ) );
+		$lng = intval ( $this->request->getPost ( 'lng' ) );
+		if (empty ( $lat )) {
+			$this->flashJson ( 500, array (), "纬度名称不能为空" );
+		}
+		if (empty ( $lng )) {
+			$this->flashJson ( 500, array (), "经度不能为空" );
+		}
+		$geohash = Geo\Hash::encode ( $lng, $lat );
+		
+		$onlineCars = new OnlineCarModel ();
+		
+		if ($this->user && $this->user->id) {
+			$onlineCars->user_id = $this->user->id;
+		}
+		$onlineCars->line_id = $lineid;
+		$onlineCars->lat = $lat;
+		$onlineCars->lng = $lng;
+		$onlineCars->geohash = $geohash;
+		$onlineCars->addtime = $onlineCars->modtime = date ( 'Y-m-d H:i:s' );
+		
+		if ($onlineCars->save () === false) {
+			$errMsgs = array ();
+			foreach ( $onlineCars->getMessages () as $message ) {
+				$errMsgs [] = $message->__toString ();
+			}
+			$this->flashJson ( 500, array (), join ( "; ", $errMsgs ) );
+		}
+		
+		$this->flashJson ( 200, array (), "add success！" );
+	}
+	
+	/**
+	 * *
+	 * 附近的车
+	 */
+	public function nearCarAction() {
+		$lat = trim ( $this->request->getPost ( 'lat' ) );
+		$lng = trim ( $this->request->getPost ( 'lng' ) );
+		if (empty ( $lat )) {
+			$this->flashJson ( 500, array (), "纬度不能为空" );
+		}
+		if (empty ( $lng )) {
+			$this->flashJson ( 500, array (), "经度不能为空" );
+		}
+		$geohash = Geo\Hash::encode ( $lng, $lat );
+		
+		$page = intval ( $this->request->getPost ( 'page' ) );
+		$page = $page < 1 ? 1 : $page;
+		$rows = intval ( $this->request->getPost ( 'rows' ) );
+		$rows = $rows < 1 ? 10 : $rows;
+		$offset = ($page - 1) * $rows;
+		
+		$onlineCars = new OnlineCarModel ();
+		
+		$search_hash = substr ( $geohash, 0, strlen ( $geohash ) - 2 );
+		$where = array (
+				"limit" => array (
+						"number" => $rows,
+						"offset" => $offset 
+				),
+				"conditions" => "geohash like '{$search_hash}%'",
+				"order" => "id ASC" 
+		);
+		$rs = $onlineCars->find ( $where );
+		
+		$data = array ();
+		if ($rs) {
+			foreach ( $rs as $item ) {
+				$data [] = $item->toArray ();
+			}
+		}
+		
+		$count_where = array (
+				"conditions" => "geohash like '{$search_hash}%'" 
+		);
+		$count = $onlineCars->count ( $count_where );
+		
+		$this->flashJson ( 200, array (
+				"total" => $count,
+				"list" => $data 
+		), "" );
+	}
+	
+	/**
+	 * 根据起点终点找线路
+	 */
+	public function listByPointsAction() {
+		$pre_point_id = intval ( $this->request->getPost ( 'pre_pointid' ) ,10 );
+		$post_point_id = intval ( $this->request->getPost ( 'post_pointid' ) ,10 );
+		if( empty($pre_point_id) ){
+			$this->flashJson ( 500, array (), "起点不能为空" );
+		}
+		
+		if( empty($post_point_id) ){
+			$this->flashJson ( 500, array (), "终点不能为空" );
+		}
+		
+		$line_points = new LinePointModel();
+		$where['conditions'] = "point_id in ({$pre_point_id},{$post_point_id})";
+		
+		$rs = $line_points->find( $where );
+		$data = array ();
+		if ($rs) {
+			foreach ( $rs as $item ) {
+				$tmp = $item->toArray ();
+				
+			}
+		}
+		
+		var_dump($data);
 	}
 }
