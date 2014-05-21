@@ -1,10 +1,17 @@
 <?php
 namespace Instcar\Server\Controllers;
+
+use BullSoft\Geo as GeoHash;
+
 use Instcar\Server\Models\User as UserModel;
 use Instcar\Server\Models\UserDetail as UserDetailModel;
 use Instcar\Server\Models\Car as CarModel;
 use Instcar\Server\Models\UserCar as UserCarModel;
+use Instcar\Server\Models\Position as PositionModel;
+use Instcar\Server\Models\UserPush as UserPushModel;
 
+
+use Instcar\Server\Models\UserPush;
 use Phalcon\Validation\Validator\Regex as RegexValidator;
 use Phalcon\Validation\Validator\PresenceOf;
 use Phalcon\Validation\Validator\StringLength as StringLength;
@@ -12,8 +19,6 @@ use Phalcon\Validation\Validator\Between as BetweenValidator;
 use Phalcon\Validation\Validator\Email as EmailValidator;
 use Phalcon\Validation\Validator\InclusionIn as InclusionInValidator;
 use Phalcon\Validation\Validator\Url as UrlValidator;
-
-use Instcar\Server\Plugins\Acl as AclPlugin;
 
 class UserController extends ControllerBase
 {
@@ -646,4 +651,98 @@ class UserController extends ControllerBase
         $this->flashJson(200, $retArr);
 
     }
+
+    public function putPositionAction()
+    {
+        if(!$this->user) {
+           $this->flashJson(401);
+        }
+        $userId = intval($this->user->id);
+
+        $lat = $this->request->getPost("lat", "float");
+        $lng = $this->request->getPost("lng", "float");
+
+        if(empty($lat) || empty($lng)) {
+            $this->flashJson(500, array(), "lat和lng必须，格式必须是double");
+        }
+        
+        $geohash = GeoHash\Hash::encode($lng, $lat);
+
+        $this->db->begin();
+        if(!$this->db->execute("UPDATE `position` SET `is_last` = 0 WHERE `is_last` = 1")) {
+            $this->db->rollback();
+            $this->flashJson(500, array(), "网络错误1");
+        }
+
+        $positionModel = new PositionModel();
+        $positionModel->user_id = $userId;
+        $positionModel->lat = $lat;
+        $positionModel->lng = $lng;
+        $positionModel->is_last = 1;
+        $positionModel->geohash = $geohash;
+
+        if($positionModel->save() == false) {
+            $this->db->rollback();
+            $errMsgs =  array();
+            foreach($positionModel->getMessages() as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+        $this->db->commit();
+        $this->flashJson(200);
+    }
+
+    public function getPositionAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+
+        $userId = $this->user->id;
+
+        $positionModel = PositionModel::findFirst("is_last = 1");
+        if(empty($positionModel)) {
+            $this->flashJson(404, array(), "您的位置信息不存在");
+        }
+        $this->flashJson(200, $positionModel->toArray());
+    }
+
+    public function putDeviceInfoAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+        $userId = $this->user->id;
+
+        $channelId = $this->request->getPost("channel_id", "string");
+        $appuId = $this->request->getPost("appuid", "string");
+        $platform = $this->request->getPost("platform", "string");
+
+        if(empty($channelId) || empty($appuId)) {
+            $this->flashJson(500, array(), "channel_id和appuid必须");
+        }
+
+        if(!in_array($platform, array("ios", "android"))) {
+            $this->flashJson(500, array(), "抱歉，尚不支持您的平台");
+        }
+        $userPushModel = UserPushModel::findFirst("user_id={$userId} AND platform='{$platform}'");
+        if(empty($userPushModel)) {
+            $userPushModel = new UserPushModel();
+            $userPushModel->platform = $platform;
+            $userPushModel->user_id = $userId;
+        }
+        $userPushModel->channel_id = $channelId;
+        $userPushModel->appuid = $appuId;
+
+        if($userPushModel->save() == false) {
+            $errMsgs =  array();
+            foreach($userPushModel->getMessages() as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+        $this->flashJson(200);
+    }
+
 }
