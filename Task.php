@@ -11,6 +11,7 @@ class Task
             'Instcar\Server\Tasks'   => __DIR__.'/tasks/',
             'Instcar\Server\Models'  => __DIR__.'/models/',
             'Instcar\Server\Logics'  => __DIR__.'/logics/',
+            'Instcar\Server\Plugins' => __DIR__.'/plugins',            
         ))->register();
     }
 

@@ -665,7 +665,7 @@ class UserController extends ControllerBase
         if(empty($lat) || empty($lng)) {
             $this->flashJson(500, array(), "lat和lng必须，格式必须是double");
         }
-        
+
         $geohash = GeoHash\Hash::encode($lng, $lat);
 
         $this->db->begin();
