@@ -275,7 +275,36 @@ class UserController extends ControllerBase
         $userId = intval(getDI()->get('session')->get('identity'));
         $this->flashJson(200, array('login_status' => ($userId > 0)));
     }
-    
+
+    public function getByPhoneAction()
+    {
+        $validator = new \Phalcon\Validation();
+        $validator->add('phone', new PresenceOf(array(
+            'message' => '手机号必须',
+        )));
+        $validator->add('phone', new RegexValidator(array(
+            'pattern' => '/^[1][3578]\d{9}$/',
+            'message' => '手机号码格式不正确'
+        )));
+        $messages = $validator->validate($_POST);
+
+        if (count($messages)) {
+            $errMsgs = array();
+            foreach($messages as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+        
+        $phone = $this->request->getPost('phone', "string");
+
+        $userModel = UserModel::findFirst("phone = '{$phone}'");
+        if(empty($userModel)) {
+            $this->flashJson(404, array(), "该号码不存在");
+        }
+        $this->flashJson(200, $userModel->toArray());
+    }
+
     public function logoutAction()
     {
         if(!$this->user) {
