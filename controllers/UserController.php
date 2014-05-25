@@ -295,7 +295,7 @@ class UserController extends ControllerBase
             }
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
-        
+
         $phone = $this->request->getPost('phone', "string");
 
         $userModel = UserModel::findFirst("phone = '{$phone}'");

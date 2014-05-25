@@ -44,6 +44,14 @@ class IndexController extends ControllerBase
         exit;
     }
 
+    public function test2Action()
+    {
+        $sql = "city IN ('北京','天津') ORDER BY id ASC LIMIT 0, 8";
+        $collection = \Instcar\Server\Models\Point::find($sql);
+        var_dump($collection->toArray());
+        exit;
+    }
+
     public function smsAction()
     {
         $phone = trim($this->request->getPost("phone"));
