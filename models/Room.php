@@ -11,6 +11,7 @@ namespace Instcar\Server\Models;
 class Room extends \Phalcon\Mvc\Model
 {
     public $id;
+    public $openfire;
     public $user_id;
     public $line_id;
     public $price;
@@ -18,6 +19,7 @@ class Room extends \Phalcon\Mvc\Model
     public $description;
     public $start_time;
     public $max_seat_num;
+    public $booked_seat_num;
     public $addtime;
     public $modtime;
 

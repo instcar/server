@@ -116,6 +116,7 @@ class RoomController extends ControllerBase
 
         /// 插入room表
         $room = new RoomModel();
+        $room->openfire = $openfire_room_name;
         $room->user_id = $user_id;
         $room->line_id = $line_id;
         $room->price = $price;
@@ -124,6 +125,7 @@ class RoomController extends ControllerBase
         $room->description = $description;
         $room->start_time = $start_time;
         $room->max_seat_num = $max_seat_num;
+        $room->booked_seat_num = 0;
         $room->addtime = $room->modtime = date('Y-m-d H:i:s');
 
         if ($room->save() == false)
@@ -424,6 +426,13 @@ class RoomController extends ControllerBase
             $this->flashJson(500, array(), $e->getMessage());
         }
 
+        /// 占用房间座位+1
+        $room->booked_seat_num = $room->booked_seat_num + 1;
+        if ($room->save() == false)
+        {
+            $this->flashJson(500, array(), "房间用户数+1失败");
+        }
+
         $this->flashJson(200, array(), "预定成功");
     }
 
@@ -479,6 +488,16 @@ class RoomController extends ControllerBase
             $this->flashJson(500, array(), $e->getMessage());
         }
 
+        /// 占用房间座位+1
+        if ($room->booked_seat_num > 0)
+        {
+            $room->booked_seat_num = $room->booked_seat_num - 1;
+            if ($room->save() == false)
+            {
+                $this->flashJson(500, array(), "房间用户数+1失败");
+            }
+        }
+
         $this->flashJson(200, array(), "取消预定成功"); 
     }
 
@@ -494,14 +513,26 @@ class RoomController extends ControllerBase
         $rooms = RoomModel::find("line_id='{$line_id}'");
 
         $data = array();
+        $count = 0;
         foreach ($rooms as $room)
         {
-            $tmp = $room->toArray();
+            $room_owner_id = $room->user_id;
+            $room_owner = UserModel::findFirst("id='{$room_owner_id}'");
+            if ($room_owner == false)
+            {
+                continue;
+            }
+            $room_owner_arr = $room_owner->toArray();
+            $room_arr = $room->toArray();
+            $tmp = array();
+            $tmp ["owner"] = $room_owner_arr;
+            $tmp ["room"] = $room_arr;
             $data [] = $tmp;
+            $count++;
         }
 
         $return = array(
-            'total' => count($rooms),
+            'total' => $count,
             'list' => $data);
 
         $this->flashJson(200, $return, '获取路线的房间成功');
@@ -527,7 +558,9 @@ class RoomController extends ControllerBase
         $data = array();
         foreach ($room_users as $room_user)
         {
-            $data [] = $room_user->user_id;
+            $user_id = $room_user->user_id;
+            $user = UserModel::find("id='{$user_id}'");
+            $data [] = $user->toArray();  
         }
 
         $return = array (
