@@ -45,14 +45,20 @@ class RoomController extends ControllerBase
           $this->flashJson(500, array(), "用户id不能为空");
         }
 
-        /// TODO 确认user_id存在性
+        /// 确认user_id存在性
+        $user_info = UserModel::findFirst("id='{$user_id}'");
+        if ($user_info == false)
+        {
+            $this->flashJson(500, array(), "用户id非法，不存在");
+        }
+        $phone = $user_info->phone;   
 
+        /// TODO 确认lind_id 存在性
         $line_id = trim($this->request->getPost('line_id'));
         if (empty($line_id))
         {
           $this->flashJson(500, array(), "路线id不能为空");
         }
-        /// TODO 确认lind_id 存在性
 
         $price = $this->request->getPost('price');
         if (empty($price))
@@ -100,13 +106,12 @@ class RoomController extends ControllerBase
         try
         {
             /// 连接openfire并且创建房间
-            $conn = new \XMPPHP_XMPP('115.28.231.132', 13000, $user_id, '123456', 'xmpphp', 
+            $conn = new \XMPPHP_XMPP('115.28.231.132', 13000, $phone, '123456', 'xmpphp', 
                     'ay140222164105110546z', false, $loglevel=\XMPPHP_Log::LEVEL_INFO);
             $conn->connect();
             $conn->processUntil('session_start');
             $conn->presence();
             $conn->createRoomEx("{$user_id}_{$room_number}", 'ay140222164105110546z');
-            
             $openfire_room_name = "{$user_id}_{$room_number}@conference.ay140222164105110546z";
         }
         catch(\XMPPHP_Exception $e)
@@ -116,6 +121,7 @@ class RoomController extends ControllerBase
 
         /// 插入room表
         $room = new RoomModel();
+        $room->openfire = $openfire_room_name;
         $room->user_id = $user_id;
         $room->line_id = $line_id;
         $room->price = $price;
@@ -124,6 +130,7 @@ class RoomController extends ControllerBase
         $room->description = $description;
         $room->start_time = $start_time;
         $room->max_seat_num = $max_seat_num;
+        $room->booked_seat_num = 0;
         $room->addtime = $room->modtime = date('Y-m-d H:i:s');
 
         if ($room->save() == false)
@@ -150,7 +157,6 @@ class RoomController extends ControllerBase
               $errMsgs[] = $message->__toString();
           }
           $this->flashJson(500, array(), join("; ", $errMsgs));
-
         }
 
         $this->flashJson(200, array('id'=>$room->id, 
@@ -193,11 +199,18 @@ class RoomController extends ControllerBase
         }
         $user_id = $room->user_id;
 
+        $user_info = UserModel::findFirst("id='{$user_id}'");
+        if ($user_info == false)
+        {
+            $this->flashJson(500, array(), "房主id信息查找失败");
+        }
+        $phone = $user_info->phone;
+
         ///删除聊天室
         try
         {
             /// 连接openfire并且创建房间
-            $conn = new \XMPPHP_XMPP('115.28.231.132', 13000, $user_id, '123456', 'xmpphp', 'ay140222164105110546z', false, $loglevel=\XMPPHP_Log::LEVEL_INFO);
+            $conn = new \XMPPHP_XMPP('115.28.231.132', 13000, $phone, '123456', 'xmpphp', 'ay140222164105110546z', false, $loglevel=\XMPPHP_Log::LEVEL_INFO);
             $conn->connect();
             $conn->processUntil('session_start');
             $conn->presence();
@@ -219,7 +232,7 @@ class RoomController extends ControllerBase
           $this->flashJson(500, array(), join("; ", $errMsgs));
         }
 
-        $this->flashJson(200, array(), "room删除成功");
+        $this->flashJson(200, array(), "删除房间成功");
     }
 
     /// 司机修改房间状态
@@ -373,26 +386,36 @@ class RoomController extends ControllerBase
         $room_id = trim($this->request->getPost('room_id'));
         if (empty($room_id))
         {
-          $this->flashJson(500, array(), "room的id不能为空");
+            $this->flashJson(500, array(), "room的id不能为空");
         }
 
+        /// 确认房间存在
         $room = RoomModel::findFirst("id='{$room_id}'");
         if ($room == false)
         {
-          $this->flashJson(500, array(), "room id 不存在");
+            $this->flashJson(500, array(), "room id 不存在");
         }
+        $openfire_room_id = $room->openfire;
 
         $user_id = trim($this->request->getPost('user_id'));
         if (empty($user_id))
         {
-          $this->flashJson(500, array(), "user id 不能为空");
+            $this->flashJson(500, array(), "user id 不能为空");
         }
 
-        $openfire_room_id = trim($this->request->getPost('openfire'));
-        if (empty($openfire_room_id))
+        /// 确认用户存在
+        $user_info = UserModel::findFirst("id='{$user_id}'");
+        if ($user_info == false)
         {
-            $this->flashJson(500, array(), "openfire room id 不能为空");
+            $this->flashJson(500, array(), "用户id非法，不存在");
         }
+
+        /// 确认用户只加入一次
+        $room_user = RoomUserModel::findFirst("room_id='{$room_id}' AND user_id='{$user_id}'");
+        if ($room_user != false)
+        {
+            $this->flashJson(500, array(), "用户已加入该房间，不能重复加入");
+        } 
 
         $room_user = new RoomUserModel();
         $room_user->room_id = $room_id;
@@ -424,6 +447,13 @@ class RoomController extends ControllerBase
             $this->flashJson(500, array(), $e->getMessage());
         }
 
+        /// 占用房间座位+1
+        $room->booked_seat_num = $room->booked_seat_num + 1;
+        if ($room->save() == false)
+        {
+            $this->flashJson(500, array(), "房间用户数+1失败");
+        }
+
         $this->flashJson(200, array(), "预定成功");
     }
 
@@ -435,23 +465,31 @@ class RoomController extends ControllerBase
         {
             $this->flashJson(500, array(), "room 的id不能为空");
         }
+        
+        /// 确认房间存在
+        $room = RoomModel::findFirst("id='{$room_id}'");
+        if ($room == false)
+        {
+            $this->flashJson(500, array(), "room id 不存在");
+        }
+        $openfire_room_id = $room->openfire;
 
         $user_id = trim($this->request->getPost('user_id'));
         if (empty($user_id))
         {
             $this->flashJson(500, array(), "user 的id不能为空");
         }
-
-        $openfire_room_id = trim($this->request->getPost('openfire'));
-        if (empty($openfire_room_id))
+        /// 确认用户存在
+        $user_info = UserModel::findFirst("id='{$user_id}'");
+        if ($user_info == false)
         {
-            $this->flashJson(500, array(), "openfire room id 不能为空");
+            $this->flashJson(500, array(), "user id非法，不存在");
         }
 
-        $room_user = RoomUserModel::findFirst(array("room_id='{$room_id}'", "user_id='{$user_id}'")); 
+        $room_user = RoomUserModel::findFirst("room_id='{$room_id}' AND user_id='{$user_id}'");
         if ($room_user == false)
         {
-            $this->flashJson(500, array(), "乘客及房间号对应关系不在数据库中");
+            $this->flashJson(500, array(), "乘客及房间号对应关系不存在");
         }
 
         if ($room_user->delete() == false)
@@ -465,7 +503,7 @@ class RoomController extends ControllerBase
         }
 
         /// 命令消息
-        /// 利用admin用户向房间广播一条离开消息
+        /// 利用admin用户向房间广播一条取消预定消息
         try
         {
             $conn = new \XMPPHP_XMPP('115.28.231.132', 13000, 'admin', 'admin', 'xmpphp', 
@@ -477,6 +515,16 @@ class RoomController extends ControllerBase
         catch(\XMPPHP_Exception $e)
         {
             $this->flashJson(500, array(), $e->getMessage());
+        }
+
+        /// 占用房间座位-1
+        if ($room->booked_seat_num > 0)
+        {
+            $room->booked_seat_num = $room->booked_seat_num - 1;
+            if ($room->save() == false)
+            {
+                $this->flashJson(500, array(), "房间用户数-1失败");
+            }
         }
 
         $this->flashJson(200, array(), "取消预定成功"); 
@@ -494,14 +542,26 @@ class RoomController extends ControllerBase
         $rooms = RoomModel::find("line_id='{$line_id}'");
 
         $data = array();
+        $count = 0;
         foreach ($rooms as $room)
         {
-            $tmp = $room->toArray();
+            $room_owner_id = $room->user_id;
+            $room_owner = UserModel::findFirst("id='{$room_owner_id}'");
+            if ($room_owner == false)
+            {
+                continue;
+            }
+            $room_owner_arr = $room_owner->toArray();
+            $room_arr = $room->toArray();
+            $tmp = array();
+            $tmp ["user"] = $room_owner_arr;
+            $tmp ["room"] = $room_arr;
             $data [] = $tmp;
+            $count++;
         }
 
         $return = array(
-            'total' => count($rooms),
+            'total' => $count,
             'list' => $data);
 
         $this->flashJson(200, $return, '获取路线的房间成功');
@@ -527,7 +587,9 @@ class RoomController extends ControllerBase
         $data = array();
         foreach ($room_users as $room_user)
         {
-            $data [] = $room_user->user_id;
+            $user_id = $room_user->user_id;
+            $user = UserModel::findFirst("id='{$user_id}'");
+            $data [] = $user->toArray();  
         }
 
         $return = array (
@@ -552,6 +614,17 @@ class RoomController extends ControllerBase
             $this->flashJson(500, array(), "房间的id不存在");
         }
 
-        $this->flashJson(200, $room->toArray(), "获取房间信息成功");
+        $data = array();
+
+        $user_id = $room->user_id;
+        $user_info = UserModel::findFirst("id='{$user_id}'");
+        if ($user_info == false)
+        {
+            $this->flashJson(500, array(), "房主不存在");
+        }
+        $data ["room"] = $room->toArray();
+        $data ["user"] = $user_info->toArray();
+        
+        $this->flashJson(200, $data, "获取房间信息成功");
     }
 }
