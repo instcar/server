@@ -5,8 +5,6 @@ class IndexController extends ControllerBase
 {
     public function indexAction()
     {
-        echo "Hello, Instcar !!!";
-        exit;
     }
 
     public function test1Action()

@@ -19,7 +19,7 @@ class AppController extends ControllerBase
         if(empty($version)) {
             $this->flashJson(500, array(), "参数错误");
         }
-        $oldVersionNumber = $this->getVersionNumberAction($version);
+        $oldVersionNumber = $this->getVersionNumber($version);
 
         $newVersionInfo = SysConfModel::findFirst("name='app'");
         if(empty($newVersionInfo)){
@@ -31,7 +31,7 @@ class AppController extends ControllerBase
 
         $newVersion = $newVersionArray['version'];
 
-        $newVersionNumber = $this->getVersionNumberAction($newVersion);
+        $newVersionNumber = $this->getVersionNumber($newVersion);
 
         $forceUpdate = $newVersionArray['force_update'] == 'yes' ? true : false;
 
@@ -56,7 +56,7 @@ class AppController extends ControllerBase
         }
     }
 
-    public function getVersionNumberAction($version)
+    protected function getVersionNumber($version)
     {
         $version = strval($version);
         $versionNumbers = explode(".", $version);
