@@ -8,6 +8,8 @@ use Instcar\Server\Models\Point as PointModel;
 use Instcar\Server\Models\UserLine as UserLineModel;
 use Instcar\Server\Models\OnlineCar as OnlineCarModel;
 use BullSoft\Geo as Geo;
+use Instcar\Server\Models\Line;
+use Instcar\Server\Models\LinePoint;
 
 class LineController extends ControllerBase {
 	// public function __construct()
@@ -58,6 +60,7 @@ class LineController extends ControllerBase {
 	 * 修改线路基本信息
 	 */
 	public function editLineAction() {
+		var_dump('aa');die;
 		$line_id = intval ( $this->request->getPost ( 'lineid' ) );
 		
 		$lines = LineModel::findFirst ( "id='$line_id'" );
@@ -239,6 +242,130 @@ class LineController extends ControllerBase {
 		}
 		$this->flashJson ( 200, array (), "恭喜您，新增线路聚点成功！" );
 	}
+
+	/**
+	 * *
+	 * 编辑线路中的聚点
+	 */
+	public function editLinePointAction() {
+		$line_id = intval ( $this->request->getPost ( 'lineid' ) );
+		if( empty($line_id) ){
+			$this->flashJson ( 404, array (), 'line id is empty' );
+		}
+		
+		$lines = LineModel::findFirst ( "id='$line_id'" );
+		if ($lines == false) {
+			$this->flashJson ( 404, array (), "该线路信息不存在" );
+		}
+		
+		$id = intval ( $this->request->getPost ( 'id' ),10 );
+		if( empty($id) ){
+			$this->flashJson ( 404, array (), 'line point id is empty' );
+		}
+		$line_point = LinePointModel::findFirst ( "id='$id'" );
+		if ($line_point == false) {
+			$this->flashJson ( 404, array (), "该线路信息不存在" );
+		}
+		
+		$point_id = intval ( $this->request->getPost ( 'pointid' ) );
+		$points = PointModel::findFirst ( "id='$point_id'" );
+		if ($points == false) {
+			$this->flashJson ( 404, array (), "该聚点信息不存在1" );
+		}
+		
+		$points_arr = array ();
+		// 该线路是否已经有起始节点
+		$is_have_pre_point = false;
+		$line_points = LinePointModel::find ( "line_id='{$line_id}'" );
+		foreach ( $line_points as $l ) {
+			if (empty ( $l->point_id )) {
+				$is_have_pre_point = true;
+			} else {
+				$points_arr [] = $l->point_id;
+			}
+		}
+		
+		// 前驱聚点ID
+		$pre_point_id = intval ( $this->request->getPost ( 'pre_pointid' ) );
+		
+		if ($pre_point_id) {
+			$points = PointModel::findFirst ( "id='$pre_point_id'" );
+			if ($points == false) {
+				$this->flashJson ( 404, array (), "该聚点信息不存在2" );
+			}
+			if (! in_array ( $pre_point_id, $points_arr )) {
+				$this->flashJson ( 500, array (), "前驱聚点信息在该线路不存在a" );
+			}
+		} else if (empty ( $pre_point_id ) && $is_have_pre_point) {
+			$this->flashJson ( 500, array (), "起始聚点信息已经存在" );
+		}
+		
+		// 后继聚点ID
+		$post_point_id = intval ( $this->request->getPost ( 'post_pointid' ) );
+		if ($post_point_id) {
+			$points = PointModel::findFirst ( "id='$post_point_id'" );
+			if ($points == false) {
+				$this->flashJson ( 404, array (), "该聚点信息不存在3" );
+			}
+			if (! in_array ( $post_point_id, $points_arr )) {
+				// $this->flashJson(500, array(), "后继聚点信息在该线路不存在");
+			}
+		} else if (empty ( $post_point_id ) && empty ( $pre_point_id )) {
+			$this->flashJson ( 500, array (), "前置聚点和后置聚点不能全为空" );
+		}
+		
+		if ($point_id == $pre_point_id || $pre_point_id == $post_point_id || $post_point_id == $point_id) {
+			$this->flashJson ( 500, array (), "聚点信息错误！" );
+		}
+		
+		$distance = intval ( $this->request->getPost ( 'distance' ) );
+		$price = floatval ( $this->request->getPost ( 'price' ) );
+			
+	
+		$line_point->line_id = $line_id;
+		$line_point->point_id = $point_id;
+		$line_point->pre_point_id = $pre_point_id;
+		$line_point->post_point_id = $post_point_id;
+		$line_point->distance = $distance;
+		$line_point->price = $price;
+		$line_point->addtime = $line_point->modtime = date ( 'Y-m-d H:i:s' );
+		if ($line_point->save () === false) {
+			$errMsgs = array ();
+			foreach ( $line_point->getMessages () as $message ) {
+				$errMsgs [] = $message->__toString ();
+			}
+			$this->flashJson ( 500, array (), join ( "; ", $errMsgs ) );
+		}
+		$this->flashJson ( 200, array (), "恭喜您，编辑线路聚点成功！" );
+	}
+	
+	/**
+	 * *
+	 * 删除线路中的聚点
+	 */
+	public function delLinePointAction() {
+		try {
+				
+			$line_point_id = intval ( $this->request->getPost ( 'id' ) );
+				
+			$lines = LinePoint::findFirst ( "id='$line_point_id'" );
+			if ($lines == false) {
+				$this->flashJson ( 404, array (), "该聚点信息不存在" );
+			}
+				
+			if ($lines->delete () === false) {
+				$errMsgs = array ();
+				foreach ( $line->getMessages () as $message ) {
+					$errMsgs [] = $message->__toString ();
+				}
+				$this->flashJson ( 500, array (), join ( "; ", $errMsgs ) );
+			}
+		} catch ( Exception $e ) {
+			$this->flashJson ( 500, array (), "Transactions fail" );
+		}
+	
+		$this->flashJson ( 200, array (), "恭喜您，删除聚点成功！" );
+	}
 	
 	/**
 	 * *
@@ -389,9 +516,55 @@ class LineController extends ControllerBase {
 		if ($all) {
 			$line_point_info = $line_point->find ( "line_id='{$data['id']}'" );
 			$list = array ();
+			$pointIds = array();
 			foreach ( $line_point_info as $ii ) {
-				$list [] = $ii->toArray ();
+				$tmp = $ii->toArray ();
+				$list [] = $tmp;
+				$pointIds[] = $tmp['point_id'];
+				if( $tmp['post_point_id'] ){
+					$pointIds[] = $tmp['post_point_id'];
+				}
+				if( $tmp['pre_point_id'] ){
+					$pointIds[] = $tmp['pre_point_id'];
+				}
 			}
+			
+			if( $pointIds ){
+				$pointIds = implode(",", $pointIds);
+				$points = new PointModel ();
+				$rs = $points->find ( "id in({$pointIds})" );
+				$point_data = array();
+				if ( $rs ){
+					foreach ( $rs as $item ) {
+						$tmp = $item->toArray ();
+						$point_data[$tmp['id']] = $tmp;
+					}
+				}
+				
+				foreach ( $list as $key=>$item ){
+					if( $point_data[$item['point_id']] )
+					{
+						$list[$key]['point_id_detail'] = $point_data[$item['point_id']];
+					}else{
+						$list[$key]['point_id_detail'] = array();
+					}
+					
+					if( $point_data[$item['post_point_id']] )
+					{
+						$list[$key]['post_point_id_detail'] = $point_data[$item['post_point_id']];
+					}else{
+						$list[$key]['post_point_id_detail'] = array('name'=>"终点");
+					}
+					
+					if( $point_data[$item['pre_point_id']] )
+					{
+						$list[$key]['pre_point_id_detail'] = $point_data[$item['pre_point_id']];
+					}else{
+						$list[$key]['pre_point_id_detail'] = array('name'=>"起点");
+					}
+				}
+			}
+			
 			$data['list'] = $list;
 		}		
 		$this->flashJson(200, $data ,'');
@@ -608,5 +781,17 @@ class LineController extends ControllerBase {
 		}
 		
 		var_dump($data);
+	}
+	
+	
+	public function list2Action()
+	{
+		$sql = $this->request->getPost ( 'sql' );
+		$data = Line::find($sql);
+		
+		$this->flashJson ( 200, array (
+				"total" => $data->count(),
+				"list" => $data->toArray()
+		), "" );
 	}
 }
