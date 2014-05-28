@@ -196,25 +196,16 @@ class UserController extends ControllerBase
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
 
-        try {
-            $conn = new \XMPPHP_XMPP(
-                '115.28.231.132',
-                13000,
-                'admin',
-                'k1990855',
-                'xmpphp',
-                'ay140222164105110546z',
-                false,
-                \XMPPHP_Log::LEVEL_INFO);
-
-            $conn->connect();
-            $conn->processUntil('session_start');
-            $conn->presence();
-            $conn->registerNewUser($phone, '123456', '', '', 'ay140222164105110546z');
-        } catch (\XMPPHP_Exception $e) {
-            // ...
+        $conn = new \XMPPHP_ChcXmppClient()
+        $ret = true;    
+        $ret = $conn->init('115.28.231.132', 13000, 'admin', 
+                           'admin', 'ay140222164105110546z');
+        $ret = $conn->register($phone, '123456');
+        if ($ret == false)
+        {
+            $this->flashJson(500, array(), "openfire 注册失败");
         }
-        
+
         $this->flashJson(200, array(), "恭喜您，注册成功！");
     }
 
