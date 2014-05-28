@@ -196,7 +196,7 @@ class UserController extends ControllerBase
             $this->flashJson(500, array(), join("; ", $errMsgs));
         }
 
-        $conn = new \XMPPHP_ChcXmppClient()
+        $conn = new \XMPPHP_ChcXmppClient();
         $ret = true;    
         $ret = $conn->init('115.28.231.132', 13000, 'admin', 
                            'admin', 'ay140222164105110546z');
