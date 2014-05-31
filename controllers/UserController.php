@@ -656,6 +656,65 @@ class UserController extends ControllerBase
 
     }
 
+    public function realnameProcessAction()
+    {
+        if(!$this->user) {
+            $this->flashJson(401);
+        }
+
+        $isAllowed = $this->acl->isAllowed();
+
+        if(!$isAllowed) {
+            $this->flashJson(403);
+        }
+
+        $validator = new \Phalcon\Validation();
+
+        $validator->add('user_id', new PresenceOf(array(
+            'message' => '用户ID必须',
+        )));
+
+        $validator->add('id_number', new PresenceOf(array(
+            'message' => '身份证号必须',
+        )));
+        $validator->add('id_number', new RegexValidator(array(
+            'pattern' => '/([0-9]{17}[0-9X]{1})|([0-9]{15})/i',
+            'message' => '身份证号格式不正确'
+        )));
+        $messages = $validator->validate($_POST);
+        if (count($messages)) {
+            $errMsgs = array();
+            foreach($messages as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+
+        $userId = intval($this->request->getPost("user_id"));
+        if($userId <=0 ) {
+            $this->flashJson(500, array(), "非法请求：用户ID必须大于0");
+        }
+
+        $dataUserModel = UserModel::findFirst($userId);
+        if(empty($dataUserModel)) {
+            $this->flashJson(500, array(), "非法请求：用户不存在");
+        }
+
+        $idNumber = $this->request->getPost("id_number");
+
+        $dataUserModel->status = 1;
+        $dataUserModel->user_detail->id_number = $idNumber;
+
+        if($dataUserModel->save() == false) {
+            $errMsgs =  array();
+            foreach($dataUserModel->getMessages() as $message) {
+                $errMsgs[] = $message->__toString();
+            }
+            $this->flashJson(500, array(), join("; ", $errMsgs));
+        }
+        $this->flashJson(200, array(), "操作成功");
+    }
+
     public function isAdminAction()
     {
         if(!$this->user) {
