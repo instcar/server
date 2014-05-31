@@ -13,6 +13,8 @@ class Line extends \Phalcon\Mvc\Model
     public function initialize()
     {
         $this->setConnectionService('db');
+        $this->hasManyToMany('id', '\Instcar\Server\Models\LinePoint', 'line_id', 'point_id', '\Instcar\Server\Models\Point', 'id', array('alias' => 'point'));
+
     }
 
     public function beforeValidationOnCreate()

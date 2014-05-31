@@ -5,7 +5,7 @@ class UserDetail extends \Phalcon\Mvc\Model
 {
     public $id;
     public $user_id;
-    public $id_number;
+    public $id_number = '';
     public $info = '';
     public $signature = '';
     public $home_addr = '';

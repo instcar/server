@@ -18,6 +18,8 @@ class LinePoint extends \Phalcon\Mvc\Model
     public function initialize()
     {
         $this->setConnectionService('db');
+        $this->belongsTo("id", "\Instcar\Server\Models\Line", "id", array("alias" => "line"));
+        $this->belongsTo("id", "\Instcar\Server\Models\Point", "id", array("alias" => "point"));
     }
 
     public function beforeValidationOnCreate()

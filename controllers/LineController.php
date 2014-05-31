@@ -483,7 +483,9 @@ class LineController extends ControllerBase {
 				$line_point_info = $line_point->find ( "line_id='{$tmp['id']}'" );
 				$list = array ();
 				foreach ( $line_point_info as $ii ) {
-					$list [] = $ii->toArray ();
+                    $tmp2 = $ii->toArray();
+                    $tmp2['geo'] = $ii->point;
+					$list [] = $tmp2;
 				}
 				$tmp ['list'] = $list;
 			}

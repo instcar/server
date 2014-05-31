@@ -29,7 +29,7 @@ class ImageController extends ControllerBase
         }
         
         $bucket = self::$imgBucket[$type];
-        $imgPrefix = 'http://' . $bucket . '.' . parse_url($ep, \PHP_URL_HOST).'/';
+        $imgPrefix = 'http://' . $bucket . '.' . parse_url($ep, \PHP_URL_HOST). '/';
         
         $aliyun = new \Aliyun($ak, $sk, $ep);
         
@@ -73,31 +73,5 @@ class ImageController extends ControllerBase
         }
         $this->flashJson(500, array(), "非法请求， 没有上传图片");
     }
-    
-    public function upload($files, $type)
-    {
-        
-    }
 
-    
-    public function testAction( )
-    {
-        $ak = 'Jj9FK935EUtlLplH';
-        $sk = 'CVqwEj4JsgnEZUzn8ttLuNRIrvWwKZ';
-        $ep = 'http://oss-cn-qingdao.aliyuncs.com';
-        $bucket = 'instcar-car-pic-1';
-        
-        $key = 'mysql.png';
-        
-        $aliyun = new \Aliyun($ak, $sk, $ep);
-
-        // var_dump($aliyun->listObjects($bucket));
-        // exit;
-
-        
-        // $filePath = '/Users/guweigang/tmp/mysql.png';
-        // var_dump($aliyun->putResourceObject($bucket, $key, fopen($filePath, 'r'), filesize($filePath)));
-
-        var_dump($aliyun->getObject($bucket, $key));
-    }
 }

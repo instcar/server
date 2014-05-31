@@ -596,6 +596,8 @@ class UserController extends ControllerBase
         $page = $paginator->getPaginate();
 
         $ret = array();
+
+        $ret['total_pages']   = $page->total_pages;
         $ret['total']   = $page->total_pages;
         $ret['current'] = $page->current;
         $ret['before']  = $page->before;
@@ -613,6 +615,45 @@ class UserController extends ControllerBase
         }
         
         $this->flashJson(200, $ret);        
+    }
+
+    public function realnameReqListAction()
+    {
+        $currentPage = max(1, $this->request->getPost('page', 'int'));
+        $limit = max(1, $this->request->getPost("limit", "int"));
+
+        $collection = UserDetailModel::find("id_number IS NULL AND info != ''");
+        $ret = array();
+
+        if($collection->count() == 0) {
+            $this->flashJson(200, $ret);
+        }
+
+        $paginator = new \Phalcon\Paginator\Adapter\Model(
+            array(
+                "data" => $collection,
+                "limit"=> $limit,
+                "page" => $currentPage,
+            )
+        );
+
+        $page = $paginator->getPaginate();
+
+        $list = $page->items;
+
+        $ret = (array) $page;
+        unset($ret['items']);
+        $ret['list'] = array();
+
+        foreach($list as $item) {
+            $aItem = $item->toArray();
+            $aItem['phone'] = $item->user->phone;
+            $aItem['name'] = $item->user->name;
+        }
+        $ret['list'][] = $aItem;
+
+        $this->flashJson(200, $ret);
+
     }
 
     public function isAdminAction()

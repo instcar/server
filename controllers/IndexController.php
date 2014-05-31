@@ -27,7 +27,7 @@ class IndexController extends ControllerBase
     {
         $encryptPassword = $this->crypt->encryptBase64("hello,world111111111", "le pa");
         echo $encryptPassword;
-	var_dump($this->crypt->decryptBase64($encryptPassword, "le pa"));
+	    var_dump($this->crypt->decryptBase64($encryptPassword, "le pa"));
 
         $client = new \GuzzleHttp\Client();
         $response = $client->get('http://guzzlephp.org');
