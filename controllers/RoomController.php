@@ -53,11 +53,17 @@ class RoomController extends ControllerBase
         }
         $phone = $user_info->phone;   
 
-        /// TODO 确认lind_id 存在性
+        /// 确认lind_id 存在性
         $line_id = trim($this->request->getPost('line_id'));
         if (empty($line_id))
         {
           $this->flashJson(500, array(), "路线id不能为空");
+        }
+
+        $line_info = LineModel::findFirst("id='{$line_id}'");
+        if ($line_info == false)
+        {
+            $this->flashJson(500, array(), "路线id非法，不存在");
         }
 
         $price = $this->request->getPost('price');
@@ -618,9 +624,17 @@ class RoomController extends ControllerBase
                 continue;
             }
 
+            $line_id = $room_info->line_id;
+            $line_info = LineModel::findFirst("id='{$line_id}'");
+            if ($line_info == false)
+            {
+                continue;
+            }
+
             $tmp_arr = array();
             $tmp_arr ["room"] = $room_info->toArray();
             $tmp_arr ["relation"] = $room_user->toArray();
+            $tmp_arr ["line"] = $line_info->toArray();
             $data [] = $tmp_arr;
             $count++; 
         }
